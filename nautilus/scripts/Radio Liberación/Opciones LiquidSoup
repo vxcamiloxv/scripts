@@ -1,0 +1,30 @@
+#!/bin/bash
+# Script para conectar o desconectar LiquidSoup
+# CepyLeft bajo GPL3 - Charlie Vegan (Arder)
+
+opcion=$(zenity --list \
+  --title="Iniciar o Parar LiquidSoup" \
+  --hide-header \
+  --text="¿ Qué deseas hacer con LiquidSoup ?" \
+  --column=" " --column="Opciones"\
+  --radiolist 'FALSE' "Conectar" \
+    'FALSE' "Desconectar" \
+    'FALSE' "Re-Conectar" \
+    'FALSE' "Re-Cargar"
+    )
+    
+    if [ $opcion = "Conectar" ]; then 
+     echo "es conectar"
+     gksu /etc/init.d/liquidsoap start
+    elif [ $opcion = "Desconectar" ]; then 
+     echo "es desconectar"
+     gksu /etc/init.d/liquidsoap stop
+    elif [ $opcion = "Re-Conectar" ]; then 
+     echo "Re-Conectar"
+     gksu /etc/init.d/liquidsoap restart
+    elif [ $opcion = "Re-Cargar" ]; then 
+     echo "Re-Cargar"
+     gksu /etc/init.d/liquidsoap force-reload
+    else 
+     echo "Se cerrara"
+    fi

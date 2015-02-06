@@ -1,0 +1,76 @@
+#!/bin/bash
+#  Script-unRar-Libre -- V 1.1                                  
+#################################################################
+#  Script para descomprimir archivos .rar de forma facil.
+#  este formato privativo que no ha dado dolores de
+#  cabeza pero gracias el unArchiver que es software libre
+#  podemos descomprimir uno que otro rar que llegue a nuestras 
+#  manos.
+# 
+#  Antes de usar este script tienes que instalar unArchiver #																															#
+#  ___________________________________________________________	#																																#
+# CopyLeft 2011 - Charlie Vegan (arder)
+# Bajo GPL V3		
+#				
+# http://www.gnu.org/licenses/gpl-3.0.html
+#																																#
+# E-Mail / XMPP: xrockartex@riseup.net				
+#																																#
+# Si mejoras este script ingresa tu nombre				
+#################################################################
+
+unarchiver()
+{
+archivo="$1"
+
+corto=${archivo##*/}
+
+#dividimos el directorio
+extension=${archivo##*.}
+path_nombre=${archivo%.*}
+
+
+#comprobamos si es .rar
+if [ "$extension" == "rar" ];
+ then (
+  echo "5" ; sleep 1
+  echo "# Leyendo el puto RAR | $corto"; sleep 1
+  echo "50" ; sleep 1
+  echo "# Descomprimiendo el puto RAR  | $corto"; sleep 1
+        buscar="`unar "$1"`"
+  echo "95" ; sleep 1
+  echo "# Descomprimido el puto RAR  | $corto"; sleep 1
+        rm -r ~/GNUstep
+  echo "100" ; sleep 1
+ ) |
+zenity --progress \
+  --title="unArchiver" \
+  --text="Escaneando...                                       |" \
+  --percentage=0 \
+  --auto-close 
+else
+  echo "Error | El formato de archivo no es .rar"
+zenity --error \
+  --text="Error | El formato de archivo no es .rar"
+fi
+}      
+
+# Redefinir variable IFS para poder usar ficheros con espacios
+tmpIFS=$IFS
+IFS=$'\n'
+
+if [ -z $NAUTILUS_SCRIPT_SELECTED_FILE_PATHS ]; then
+    NAUTILUS_SCRIPT_SELECTED_FILE_PATHS=$1
+    zenity --error \
+    --text="Error al leer archivo ¿tienes selecionado el .rar?"
+fi
+
+# Para cada uno de los ficheros seleccionados
+for ARCHIVE_FULLPATH in $NAUTILUS_SCRIPT_SELECTED_FILE_PATHS; do
+
+    # Y aqui ya hacemos la llamada para la funcion unarchiver
+    unarchiver "$ARCHIVE_FULLPATH"
+
+done
+
+IFS=$tmpIFS;

@@ -1,0 +1,353 @@
+#!/usr/bin/env python
+# -*- coding: latin-1 -*-
+
+import gtk
+import os, sys
+import string
+
+sys.path.insert(0, os.path.join(os.path.abspath(os.path.dirname(sys.argv[0])),".."))
+import Process
+
+colorBorder = "#FFFFFF"
+
+colorBg = "#FFFFFF"
+colorBg1 = "#562525"
+colorBg2 = "#784949"
+
+def ClickAccept(widget):
+
+	global colorBorder
+	global colorBg
+	global colorBg1
+	global colorBg2
+
+	# recorremos todos los directorios
+	files = os.environ['NAUTILUS_SCRIPT_SELECTED_FILE_PATHS'].split("\n")
+
+	pathDirectories = Process.getCurrentDirectory()
+
+	# numero de fotos
+	nPhotos = 0
+	for f in files:
+		if f != "":
+			if not os.path.isdir(f):
+				if Process.getExtension(f)=="JPG" or Process.getExtension(f)=="PNG":
+					nPhotos = nPhotos + 1
+
+	columns = int(spinCol.get_value())
+	rows = nPhotos/columns
+	if nPhotos%columns!=0:
+		rows = rows + 1
+
+	widthImg = int(spinWidth.get_value()) / columns
+
+	widthTotal = int(spinWidth.get_value()) + ( int(spinBorder.get_value())*(columns+1) )
+
+	heightTotal = widthImg*rows + ( int(spinBorder.get_value())*(rows+1) )
+
+	# copiar archivos
+
+	strDraw = ""
+
+	currentRow = 0
+	currentColumn = 0
+
+	filesArray = []
+
+	for f in files:
+		if f != "":
+			if not os.path.isdir(f):
+				if Process.getExtension(f)=="JPG" or Process.getExtension(f)=="PNG":
+					path = Process.getPath(f)
+					fileName = Process.getFile(f)
+					fileNameCopy = Process.getName(fileName) + "_copy." + Process.getExtension(fileName)
+					fileCopy = path + "/" + fileNameCopy
+
+					filesArray.append(fileCopy)
+
+					pb = gtk.gdk.pixbuf_new_from_file( f )
+					if pb.get_height()<pb.get_width():
+						Process.ProcessFileByArgument(
+							"convert -resize " + str(widthImg) + "x \"" + f + "\" \"" + fileCopy + "\"")
+					else:
+						Process.ProcessFileByArgument(
+							"convert -resize x" + str(widthImg) + " \"" + f + "\" \"" + fileCopy + "\"")
+
+					pb = gtk.gdk.pixbuf_new_from_file( fileCopy )
+
+					if cbBorder.get_active():
+						Process.ProcessFileByArgument(
+							"convert -fill transparent -stroke " + colorBorder + " -strokewidth " + str(int(spinSizeBorder.get_value())) + " -draw \"rectangle 0,0 "+str(pb.get_width())+","+str(pb.get_height())+"\" \"" + fileCopy + "\" \"" + fileCopy + "\"")
+
+					supH = currentColumn*widthImg + ( (widthImg-pb.get_width())/2 ) + ( int(spinBorder.get_value())*(currentColumn+1) )
+					supV = currentRow*widthImg + ( (widthImg-pb.get_height())/2 ) + ( int(spinBorder.get_value())*(currentRow+1) )
+
+					strDraw = strDraw + " -draw \"image Over "+ str(supH) +","+ str(supV) +" "+str(pb.get_width())+","+str(pb.get_height())+" '" + fileCopy + "'\""
+
+
+					currentColumn = currentColumn + 1
+
+					if currentColumn >= columns:
+						currentColumn = 0
+						currentRow = currentRow + 1
+
+	# mosaico
+
+	bg = ""
+	if radBgTransparent.get_active() == True:
+		bg = " gradient: -channel A -fx 0 "
+
+	if radBgSolid.get_active() == True:
+		bg = " gradient:" + colorBg + "-" + colorBg
+
+	if radBgGradient.get_active() == True:
+		bg = " gradient:" + colorBg1 + "-" + colorBg2
+
+	Process.ProcessFileByArgument(
+		"convert -background none -fill transparent -size " + str(widthTotal) + "x" + str(heightTotal) + bg + strDraw + " \"" + pathDirectories + "/salida.png\"")
+
+	# borramos temporales
+
+	for f in filesArray:
+		Process.ProcessFileByArgument(
+			"rm \""+f+"\"")
+
+	gtk.main_quit()
+
+def ClickCancel(widget):
+	gtk.main_quit()
+
+def ClickColor(widget, data):
+	global colorBorder
+	global colorBg
+	global colorBg1
+	global colorBg2
+
+	colorseldlg = gtk.ColorSelectionDialog("Seleccionar color")
+
+	if data == "__border__":
+		colorseldlg.colorsel.set_current_color(gtk.gdk.color_parse(colorBorder))
+
+	if data == "__bg__":
+		colorseldlg.colorsel.set_current_color(gtk.gdk.color_parse(colorBg))
+	
+	if data == "__bg1__":
+		colorseldlg.colorsel.set_current_color(gtk.gdk.color_parse(colorBg1))
+
+	if data == "__bg2__":
+		colorseldlg.colorsel.set_current_color(gtk.gdk.color_parse(colorBg2))
+
+	response = colorseldlg.run()
+
+	if response == gtk.RESPONSE_OK:
+		if data == "__border__":
+			colorBorder = gtk.color_selection_palette_to_string([colorseldlg.colorsel.get_current_color()]) 
+			btnColor.modify_bg(gtk.STATE_NORMAL, colorseldlg.colorsel.get_current_color())
+		if data == "__bg__":
+			colorBg = gtk.color_selection_palette_to_string([colorseldlg.colorsel.get_current_color()]) 
+			btnColor.modify_bg(gtk.STATE_NORMAL, colorseldlg.colorsel.get_current_color())
+		if data == "__bg1__":
+			colorBg1 = gtk.color_selection_palette_to_string([colorseldlg.colorsel.get_current_color()]) 
+			btnColorBg1.modify_bg(gtk.STATE_NORMAL, colorseldlg.colorsel.get_current_color())
+		if data == "__bg2__":
+			colorBg2 = gtk.color_selection_palette_to_string([colorseldlg.colorsel.get_current_color()]) 
+			btnColorBg2.modify_bg(gtk.STATE_NORMAL, colorseldlg.colorsel.get_current_color())
+
+	colorseldlg.destroy()
+
+def ToggledBg(widget, data):
+	btnColor.set_sensitive(radBgSolid.get_active())
+	btnColorBg1.set_sensitive(radBgGradient.get_active())
+	btnColorBg2.set_sensitive(radBgGradient.get_active())
+
+# PROGRAMA
+
+if Process.verifyCommands("convert%ImageMagick")==False:
+	sys.exit()
+
+w = gtk.Window(gtk.WINDOW_TOPLEVEL)
+w.set_title("Crear mosaico fotográfico")
+w.set_border_width(20)
+
+w.connect("destroy", gtk.mainquit) 
+
+# tabla de la miniatura
+
+tableMin = gtk.Table(2, 1, False)
+tableMin.set_border_width(10)
+
+tableMin.set_row_spacings(8)
+tableMin.set_col_spacings(8)
+
+aligImg = gtk.Alignment(0.0, 0.0)
+lImg = gtk.Label()
+lImg.set_markup("<b>Imagen</b>")
+aligImg.add(lImg)
+
+tableMin.attach(aligImg, 0, 2, 0, 1)
+
+lWidth = gtk.Label("Ancho Imagen:")
+
+tableMin.attach(lWidth, 0, 1, 1, 2)
+
+adjWidth= gtk.Adjustment(1.0, 1.0, 1024.0, 1.0, 5.0, 0.0)
+spinWidth = gtk.SpinButton(adjWidth, 0, 0)
+spinWidth.set_value(800)
+
+tableMin.attach(spinWidth, 1, 2, 1, 2)
+
+lBorder = gtk.Label("Distancia:")
+
+tableMin.attach(lBorder, 0, 1, 2, 3)
+
+adjBorder= gtk.Adjustment(1.0, 1.0, 80.0, 1.0, 5.0, 0.0)
+spinBorder = gtk.SpinButton(adjBorder, 0, 0)
+spinBorder.set_value(40)
+
+tableMin.attach(spinBorder, 1, 2, 2, 3)
+
+lCol = gtk.Label("Columnas:")
+
+tableMin.attach(lCol, 0, 1, 3, 4)
+
+adjCol = gtk.Adjustment(1.0, 1.0, 10.0, 1.0, 5.0, 0.0)
+spinCol = gtk.SpinButton(adjCol, 0, 0)
+spinCol.set_value(3)
+
+tableMin.attach(spinCol, 1, 2, 3, 4)
+
+aligBorderImg = gtk.Alignment(0.0, 0.0)
+lBorderImg = gtk.Label()
+lBorderImg.set_markup("<b>Borde de las imágenes</b>")
+aligBorderImg.add(lBorderImg)
+
+tableMin.attach(aligBorderImg, 0, 2, 4, 5)
+
+lSizeBorder = gtk.Label("Tamaño:")
+
+tableMin.attach(lSizeBorder, 0, 1, 5, 6)
+
+adjSizeBorder = gtk.Adjustment(1.0, 1.0, 6.0, 1.0, 5.0, 0.0)
+spinSizeBorder = gtk.SpinButton(adjSizeBorder, 0, 0)
+spinSizeBorder.set_value(2)
+
+tableMin.attach(spinSizeBorder, 1, 2, 5, 6)
+
+lColorBorder = gtk.Label("Color:")
+
+tableMin.attach(lColorBorder, 0, 1, 6, 7)
+
+aligButtonColor = gtk.Alignment(0.0, 0.0)
+
+btnColor = gtk.Button()
+
+btnColor.set_size_request(25,25)
+
+btnColor.modify_bg(gtk.STATE_NORMAL, gtk.gdk.color_parse(colorBorder))
+
+btnColor.connect("clicked", ClickColor, "__border__")
+
+aligButtonColor.add(btnColor)
+
+tableMin.attach(aligButtonColor, 1, 2, 6, 7)
+
+cbBorder = gtk.CheckButton("Poner borde a las imágenes")
+cbBorder.set_active(True)
+tableMin.attach(cbBorder, 1, 2, 7, 8)
+
+# fondo
+aligBg = gtk.Alignment(0.0, 0.0)
+lBg = gtk.Label()
+lBg.set_markup("<b>Fondo</b>")
+aligBg.add(lBg)
+
+tableMin.attach(aligBg, 0, 2, 8, 9)
+
+# color fondo
+
+radBgTransparent = gtk.RadioButton(None, "Fondo transparente")
+radBgTransparent.set_active(True)
+radBgTransparent.connect("toggled", ToggledBg, "rad1")
+tableMin.attach(radBgTransparent, 1, 2, 9, 10)
+
+radBgSolid = gtk.RadioButton(radBgTransparent, "Fondo con color sólido")
+radBgSolid.connect("toggled", ToggledBg, "rad2")
+tableMin.attach(radBgSolid, 1, 2, 10, 11)
+
+aligButtonColor = gtk.Alignment(1.0, 0.0)
+
+btnColor = gtk.Button()
+
+btnColor.set_size_request(25,25)
+
+btnColor.modify_bg(gtk.STATE_NORMAL, gtk.gdk.color_parse(colorBg))
+
+btnColor.set_sensitive(False)
+
+btnColor.connect("clicked", ClickColor, "__bg__")
+
+aligButtonColor.add(btnColor)
+
+tableMin.attach(aligButtonColor, 0, 1, 10, 11)
+
+radBgGradient = gtk.RadioButton(radBgTransparent, "Fondo con color gradiente")
+radBgGradient.connect("toggled", ToggledBg, "rad3")
+tableMin.attach(radBgGradient, 1, 2, 11, 12)
+
+
+boxButtonsColorBg = gtk.HBox(True, 4)
+
+aligButtonColorBg = gtk.Alignment(1.0, 0.0)
+
+btnColorBg1 = gtk.Button()
+
+btnColorBg1.set_size_request(25,25)
+
+btnColorBg1.modify_bg(gtk.STATE_NORMAL, gtk.gdk.color_parse(colorBg1))
+
+btnColorBg1.set_sensitive(False)
+
+btnColorBg1.connect("clicked", ClickColor, "__bg1__")
+
+boxButtonsColorBg.pack_start(btnColorBg1, False, False, 0)
+
+btnColorBg2 = gtk.Button()
+
+btnColorBg2.set_size_request(25,25)
+
+btnColorBg2.modify_bg(gtk.STATE_NORMAL, gtk.gdk.color_parse(colorBg2))
+
+btnColorBg2.set_sensitive(False)
+
+btnColorBg2.connect("clicked", ClickColor, "__bg2__")
+
+boxButtonsColorBg.pack_start(btnColorBg2, False, False, 0)
+
+aligButtonColorBg.add(boxButtonsColorBg)
+
+tableMin.attach(aligButtonColorBg, 0, 1, 11, 12)
+
+
+# botones
+
+aligButtons = gtk.Alignment(1.0, 0.0)
+boxButtons = gtk.HBox(True, 4)
+
+bCancel = gtk.Button("Cancelar", gtk.STOCK_CANCEL)
+
+bCancel.connect("clicked", ClickCancel)
+
+boxButtons.pack_start(bCancel, False, False, 0)
+
+bAccept = gtk.Button("Aceptar", gtk.STOCK_OK)
+
+bAccept.connect("clicked", ClickAccept)
+
+boxButtons.pack_start(bAccept, False, False, 0)
+
+aligButtons.add(boxButtons)
+tableMin.attach(aligButtons, 1, 2, 12, 13)
+
+w.add(tableMin)
+w.show_all()
+gtk.main()

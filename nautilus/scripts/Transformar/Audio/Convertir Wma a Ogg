@@ -1,0 +1,39 @@
+#!/usr/bin/env python
+# -*- coding: latin-1 -*-
+
+import os, sys
+
+sys.path.insert(0, os.path.join(os.path.abspath(os.path.dirname(sys.argv[0])),".."))
+import Process
+
+if Process.verifyCommands("mplayer|oggenc")==False:
+	sys.exit()
+
+def ProcessDirectory(d):
+	files = os.listdir(d)
+	for f in files:
+		f = d + "/" + f
+		if os.path.isdir(f):
+			ProcessDirectory(f)
+		else:
+			ProcessFile(f)
+
+def ProcessFile(f):
+	if Process.getExtension(f) == "WMA":
+		Process.ProcessFileByArgument("mplayer \"" + f + "\" -ao pcm")
+		Process.ProcessFileByArgument("oggenc audiodump.wav")
+		Process.ProcessFileByArgument("rm audiodump.wav")
+		Process.ProcessFileByArgument("mv audiodump.ogg \"" + Process.getPath(f) + "/" + Process.getName(f) + ".ogg\"")
+
+
+
+files = os.environ['NAUTILUS_SCRIPT_SELECTED_FILE_PATHS'].split("\n")
+
+
+for f in files:
+	if f != "":
+		if os.path.isdir(f):
+			ProcessDirectory(f)
+		else:
+			ProcessFile(f)
+

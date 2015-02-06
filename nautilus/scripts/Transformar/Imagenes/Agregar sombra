@@ -1,0 +1,238 @@
+#!/usr/bin/env python
+# -*- coding: latin-1 -*-
+
+import gtk
+import os, sys
+import string
+
+sys.path.insert(0, os.path.join(os.path.abspath(os.path.dirname(sys.argv[0])),".."))
+import Process
+
+colorBg = "#FFFFFF"
+colorBg1 = "#562525"
+colorBg2 = "#784949"
+
+def ClickAceptar(widget):
+	archivos = os.environ['NAUTILUS_SCRIPT_SELECTED_FILE_PATHS'].split("\n")
+	for archivo in archivos:
+		if archivo != "":
+			if os.path.isdir(archivo):
+				ProcesarDirectorio(archivo)
+			else:
+				ProcesarImagen(archivo)
+
+	Process.alert("El proceso ha finalizado satisfactoriamente")
+	gtk.main_quit()
+
+def ProcesarDirectorio(directorio):
+	archivos = os.listdir(directorio)
+	for archivo in archivos:
+		archivo = directorio + "/" + archivo
+		if os.path.isdir(archivo):
+			ProcesarDirectorio(archivo)
+		else:
+			ProcesarImagen(archivo)
+
+def ProcesarImagen(archivo):
+	if Process.getExtension(archivo) == "JPG" or Process.getExtension(archivo) == "PNG":
+
+		blur = int(spinTam.get_value())
+		sepX = int(spinSepX.get_value())
+		sepY = int(spinSepY.get_value())
+
+		fileNameCopy = Process.getName(archivo) + "_copy.png"
+		fileCopy = Process.getPath(archivo) + "/" + fileNameCopy
+
+		fileNameShadow = Process.getName(archivo) + "_shadow.png"
+		fileShadow = Process.getPath(archivo) + "/" + fileNameShadow
+
+		pb = gtk.gdk.pixbuf_new_from_file( archivo )
+
+
+		#Process.ProcessFileByArgument(
+		#	"convert -size " + str(pb.get_width()+(sepX*2)) + "x" + str(pb.get_height()+(sepY*2)) + " gradient:#ffffff-#ffffff -draw \"image Over " + str(sepX) + "," + str(sepY) + " "+str(pb.get_width())+","+str(pb.get_height())+" '" + archivo + "'\" \"" + fileCopy + "\"")
+
+		Process.ProcessFileByArgument(
+			"convert \"" + archivo + "\" \"" + fileCopy + "\"")	
+
+		Process.ProcessFileByArgument(
+			"convert -background none -fill transparent -bordercolor transparent -border 10 -background none \"" + fileCopy + "\" \"" + fileCopy + "\"")
+
+		Process.ProcessFileByArgument(
+			"convert \"" + fileCopy + "\"  -channel A  -blur 0x" + str(blur) + "  -channel RG -fx 0  -channel B -fx .25 \"" + fileShadow + "\"")
+
+		Process.ProcessFileByArgument(
+			"convert \"" + fileCopy + "\" -background none -gravity SouthEast -splice " + str(sepX) + "x" + str(sepY) + "+0+0 \"" + fileShadow + "\" -compose Dst_Over -composite \"" + fileCopy + "\" ")
+
+		pb = gtk.gdk.pixbuf_new_from_file( fileCopy )
+
+		if radBgSolid.get_active() == True:
+			bg = " gradient:" + colorBg + "-" + colorBg
+
+		if radBgGradient.get_active() == True:
+			bg = " gradient:" + colorBg1 + "-" + colorBg2
+
+		Process.ProcessFileByArgument(
+			"convert -size " + str(pb.get_width()) + "x" + str(pb.get_height()) + bg + " -draw \"image Over 0,0 "+str(pb.get_width())+","+str(pb.get_height())+" '" + fileCopy + "'\" \"" + archivo + "\"")
+
+		Process.ProcessFileByArgument("rm \""+fileCopy+"\"")
+		Process.ProcessFileByArgument("rm \""+fileShadow+"\"")
+
+def ClickCancelar(widget):
+	gtk.main_quit()
+
+
+def ClickColor(widget, data):
+	global colorBg
+	global colorBg1
+	global colorBg2
+
+	colorseldlg = gtk.ColorSelectionDialog("Seleccionar color")
+
+	if data == "__bg__":
+		colorseldlg.colorsel.set_current_color(gtk.gdk.color_parse(colorBg))
+	
+	if data == "__bg1__":
+		colorseldlg.colorsel.set_current_color(gtk.gdk.color_parse(colorBg1))
+
+	response = colorseldlg.run()
+
+	if response == gtk.RESPONSE_OK:
+		if data == "__bg__":
+			colorBg = gtk.color_selection_palette_to_string([colorseldlg.colorsel.get_current_color()]) 
+			btnColor.modify_bg(gtk.STATE_NORMAL, colorseldlg.colorsel.get_current_color())
+		if data == "__bg1__":
+			colorBg1 = gtk.color_selection_palette_to_string([colorseldlg.colorsel.get_current_color()]) 
+			btnColorBg1.modify_bg(gtk.STATE_NORMAL, colorseldlg.colorsel.get_current_color())
+
+	colorseldlg.destroy()
+
+def ToggledBg(widget, data):
+	btnColor.set_sensitive(radBgSolid.get_active())
+	btnColorBg1.set_sensitive(radBgGradient.get_active())
+	btnColorBg2.set_sensitive(radBgGradient.get_active())
+
+
+if Process.verifyCommands("convert%ImageMagick")==False:
+	sys.exit()
+	
+	
+w = gtk.Window(gtk.WINDOW_TOPLEVEL)
+w.set_title("Agregar sombra")
+w.set_border_width(20)
+
+w.connect("destroy", gtk.mainquit) 
+#l = gtk.Label(os.environ['NAUTILUS_SCRIPT_SELECTED_FILE_PATHS'])
+
+table = gtk.Table(3, 2, False)
+
+table.set_row_spacings(5)
+table.set_col_spacings(5)
+
+lAncho = gtk.Label("Desenfoque:")
+table.attach(lAncho, 0, 1, 0, 1)
+
+adjTam = gtk.Adjustment(1.0, 1.0, 10.0, 1.0, 5.0, 0.0)
+spinTam = gtk.SpinButton(adjTam, 0, 0)
+spinTam.set_value(5)
+table.attach(spinTam, 1, 2, 0, 1)
+
+lSepX = gtk.Label("Separacion X:")
+table.attach(lSepX, 0, 1, 1, 2)
+
+adjSepX = gtk.Adjustment(1.0, 1.0, 50.0, 1.0, 5.0, 0.0)
+spinSepX = gtk.SpinButton(adjSepX, 0, 0)
+spinSepX.set_value(8)
+table.attach(spinSepX, 1, 2, 1, 2)
+
+lSepY = gtk.Label("Separacion Y:")
+table.attach(lSepY, 0, 1, 2, 3)
+
+adjSepY = gtk.Adjustment(1.0, 1.0, 50.0, 1.0, 5.0, 0.0)
+spinSepY = gtk.SpinButton(adjSepY, 0, 0)
+spinSepY.set_value(8)
+table.attach(spinSepY, 1, 2, 2, 3)
+
+
+radBgSolid = gtk.RadioButton(None, "Fondo con color sólido")
+radBgSolid.set_active(True)
+radBgSolid.connect("toggled", ToggledBg, "rad2")
+table.attach(radBgSolid, 1, 2, 3, 4)
+
+aligButtonColor = gtk.Alignment(1.0, 0.0)
+
+btnColor = gtk.Button()
+
+btnColor.set_size_request(25,25)
+
+btnColor.modify_bg(gtk.STATE_NORMAL, gtk.gdk.color_parse(colorBg))
+
+btnColor.set_sensitive(True)
+
+btnColor.connect("clicked", ClickColor, "__bg__")
+
+aligButtonColor.add(btnColor)
+
+table.attach(aligButtonColor, 0, 1, 3, 4)
+
+radBgGradient = gtk.RadioButton(radBgSolid, "Fondo con color gradiente")
+radBgGradient.connect("toggled", ToggledBg, "rad3")
+table.attach(radBgGradient, 1, 2, 4, 5)
+
+
+boxButtonsColorBg = gtk.HBox(True, 4)
+
+aligButtonColorBg = gtk.Alignment(1.0, 0.0)
+
+btnColorBg1 = gtk.Button()
+
+btnColorBg1.set_size_request(25,25)
+
+btnColorBg1.modify_bg(gtk.STATE_NORMAL, gtk.gdk.color_parse(colorBg1))
+
+btnColorBg1.set_sensitive(False)
+
+btnColorBg1.connect("clicked", ClickColor, "__bg1__")
+
+boxButtonsColorBg.pack_start(btnColorBg1, False, False, 0)
+
+btnColorBg2 = gtk.Button()
+
+btnColorBg2.set_size_request(25,25)
+
+btnColorBg2.modify_bg(gtk.STATE_NORMAL, gtk.gdk.color_parse(colorBg2))
+
+btnColorBg2.set_sensitive(False)
+
+btnColorBg2.connect("clicked", ClickColor, "__bg2__")
+
+boxButtonsColorBg.pack_start(btnColorBg2, False, False, 0)
+
+aligButtonColorBg.add(boxButtonsColorBg)
+
+table.attach(aligButtonColorBg, 0, 1, 4, 5)
+
+
+
+
+
+
+
+# botones
+aligBotones = gtk.Alignment(1.0, 0.0)
+boxBotones = gtk.HBox(True, 4)
+
+bAceptar = gtk.Button("Aceptar", gtk.STOCK_OK)
+bAceptar.connect("clicked", ClickAceptar)
+
+boxBotones.pack_start(bAceptar, False, False, 0)
+bCancelar = gtk.Button("Cancelar", gtk.STOCK_CANCEL)
+bCancelar.connect("clicked", ClickCancelar)
+
+boxBotones.pack_start(bCancelar, False, False, 0)
+aligBotones.add(boxBotones)
+table.attach(aligBotones, 1, 2, 5, 6)
+
+w.add(table)
+w.show_all()
+gtk.main()

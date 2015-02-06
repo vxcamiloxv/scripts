@@ -1,0 +1,99 @@
+#!/bin/bash
+# Script para convertir un video a animación gif
+# CopyLeft bajo GPL3 - Charlie Vegan (Arder)
+
+
+video2gif()
+{
+archivo="$1"
+
+corto=${archivo##*/}
+
+#dividimos el directorio
+extension=${archivo##*.}
+path_nombre=${archivo%.*}
+
+#Caracteristicas
+ancho=$(ffprobe -show_streams $archivo 2>/dev/null | grep "width=" | cut -d'=' -f2)
+alto=$(ffprobe -show_streams $archivo 2>/dev/null | grep "height=" | cut -d'=' -f2)
+
+#comprobamos si es video
+if [ "$extension" == "mpeg" ];	
+ then (
+
+
+#actions="`zenity --multiple --separator="" --hide-column 2 --print-column 2 --list --column "nombre de columna" --column "columna oculta" "comprimir un 80%" " -compress jpeg -quality 80%" "Cambiar tamaño a 800x600" " -resize 800x600"`"
+
+#Comando
+
+#mogrify$actions "$@"
+
+opcion=$(zenity --list \
+  --title="Video2Gif" \
+  --hide-header \
+  --text="Modifica las opciones:" \
+  --column=" " --column="Opciones"\
+  --editable "Archivo:" "$archivo" \
+    "Ancho:" "$ancho" \
+    "Alto:" "$alto" \
+    "Frames" "5"
+    )
+    if [ "$opcion" = "Iniciar Normal" ]; then 
+     echo "es conectar"
+     ices2 /etc/ices2/ices-playlist.xml >/dev/null 2>&1 & exit 0
+    elif [ "$opcion" = "Iniciar con reproducción Aleatoria" ]; then 
+     echo "es desconectar"
+     ices2 /etc/ices2/ices-playlist2.xml >/dev/null 2>&1 & exit 0
+    elif [ "$opcion" = "Parar Ices" ]; then 
+     echo "Parando ICES"
+     killall ices2 & exit 0
+    else 
+     echo "Se cerrara"
+    fi
+         
+
+  echo "5" ; sleep 1
+  echo "# Leyendo el puto RAR | $corto"; sleep 1
+  echo "50" ; sleep 1
+  echo "# Descomprimiendo el puto RAR  | $corto"; sleep 1
+        buscar="`unar "$1"`"
+  echo "95" ; sleep 1
+  echo "# Descomprimido el puto RAR  | $corto"; sleep 1
+        rm -r ~/GNUstep
+  echo "100" ; sleep 1
+ ) |
+zenity --progress \
+  --title="unArchiver" \
+  --text="Escaneando....................|" \
+  --percentage=0 \
+  --auto-close 
+else
+  echo "Error | El formato de archivo no es .rar"
+zenity --error \
+  --text="Error | El formato de archivo no es .rar"
+fi
+}      
+
+
+
+
+
+# Redefinir variable IFS para poder usar ficheros con espacios
+tmpIFS=$IFS
+IFS=$'\n'
+
+if [ -z $NAUTILUS_SCRIPT_SELECTED_FILE_PATHS ]; then
+    NAUTILUS_SCRIPT_SELECTED_FILE_PATHS=$1
+    zenity --error \
+    --text="Error al leer archivo ¿tienes selecionado el .rar?"
+fi
+
+# Para cada uno de los ficheros seleccionados
+for ARCHIVE_FULLPATH in $NAUTILUS_SCRIPT_SELECTED_FILE_PATHS; do
+
+    # Y aqui ya hacemos la llamada para la funcion unarchiver
+    video2gif "$ARCHIVE_FULLPATH"
+
+done
+
+IFS=$tmpIFS;

@@ -1,0 +1,50 @@
+#!/usr/bin/env python
+# -*- coding: latin-1 -*-
+
+import sys, os
+
+sys.path.insert(0, os.path.join(os.path.abspath(os.path.dirname(sys.argv[0])),".."))
+import Process
+
+if Process.verifyCommands("id3")==False:
+	sys.exit()
+
+files = os.environ['NAUTILUS_SCRIPT_SELECTED_FILE_PATHS'].split("\n")
+
+cont = 0
+
+for f in files:
+	if not os.path.isdir(f):
+		if Process.getExtension(f) == "MP3" or Process.getExtension(f) == "OGG":
+			name = Process.getName(f)
+			pieces = Process.getPath(f).split("/")
+			directory = pieces[len(pieces)-1]
+			try:
+				track = int(name[0:2])
+				name = name[2:]
+				Process.ProcessFileByArgument(
+					"id3 -T \"" + str(track) + "\" \"" + f + "\"")
+			except:
+				pass
+
+			Process.ProcessFileByArgument(
+				"id3 -t \"" + name.strip() + "\" \"" + f + "\"")
+
+			album_artist = directory.split("-")
+
+			if len(album_artist)==1:
+				Process.ProcessFileByArgument(
+					"id3 -a \"" + directory.strip() + "\" \"" + f + "\"")
+	
+				Process.ProcessFileByArgument(
+					"id3 -A \"" + directory.strip() + "\" \"" + f + "\"")
+			else:
+				Process.ProcessFileByArgument(
+					"id3 -a \"" + album_artist[0].strip() + "\" \"" + f + "\"") #artist
+	
+				Process.ProcessFileByArgument(
+					"id3 -A \"" + album_artist[1].strip() + "\" \"" + f + "\"") #album
+
+			cont = cont + 1
+
+Process.alert("Se han cambiado las etiquetas ID3 de " + str(cont) + " archivos")

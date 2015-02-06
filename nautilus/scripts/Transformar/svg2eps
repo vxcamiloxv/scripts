@@ -1,0 +1,67 @@
+#!/bin/bash
+
+#------------------------------------------------------------------------------#
+# SVG2PDF
+# http://code.google.com/p/svg2pdf/
+#
+# Version:	0.2
+#
+# Author:	Javier Pérez <www@javierperez.eu>
+# Blog:		http://javierperez.eu | http://en.javierperez.eu
+#
+# License:	GPL v3
+#
+#------------------------------------------------------------------------------#
+
+### comprobamos los paquetes
+# TODO: zenity, pdfjam, inkscape
+ps
+### solicitamos fichero destino
+OUTFILE=`zenity --file-selection --save --title="Fichero PDF destino"`
+if [ $? -eq 0 ]; then
+
+	# añadimos extensión .pdf
+	EXT=${OUTFILE#*.}
+	if [ "$EXT" != "eps" ]; then
+		OUTFILE="${OUTFILE}.eps"
+	fi
+
+	### convertimos todos los SVG en PDF
+
+	# destino temporal para los PDF
+	TMPDIR="/tmp/`date +"%N"`"
+	mkdir -p $TMPDIR
+
+	# recorremos todos los SVG seleccionados
+	PCOUNTER=0
+	PTOTAL=$#
+	(
+	for arg; do
+		# convertimos
+		echo "# Convirtiendo SVG a PDF: $arg"
+		inkscape --without-gui --file=$arg --export-eps=$TMPDIR/$arg.eps
+		PCOUNTER=`expr $PCOUNTER + 1`
+		echo "($PCOUNTER*100)/$PTOTAL" | bc
+	done
+	) | zenity --progress --title="Generado ficheros PDF" --text="Convirtiendo SVG en PDF" --percentage=0 --auto-close
+
+	# máscara de selección
+	SOURCES=$TMPDIR/*.pdf
+
+	# convertimos todos los PDF individuales en un sólo fichero PDF
+	# pdfjam (deb)
+	( pdfjoin $SOURCES --outfile $OUTFILE; echo "# $?"; echo "100"; ) | zenity --progress --title="Generando PDF final" --pulsate --auto-close
+
+	### eliminamos el directorio temporal
+	#( rm -rf $TMPDIR; echo "100" ) | zenity --progress --title="Eliminando datos temporales" --pulsate --auto-close
+
+	### comprobamos que el fichero existe
+	if [ -f "$OUTFILE" ]; then
+		zenity --info --text="Fichero PDF generado: $OUTFILE"
+	else
+		zenity --error --text="Error, el fichero PDF no pudo ser generado"
+	fi
+
+	
+fi
+

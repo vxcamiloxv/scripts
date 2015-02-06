@@ -1,0 +1,146 @@
+#!/usr/bin/env python
+# -*- coding: latin-1 -*-
+
+import gtk
+import os
+import sys
+import string
+
+sys.path.insert(0, os.path.join(os.path.abspath(os.path.dirname(sys.argv[0])),".."))
+import Process
+
+def ClickAceptar(widget):
+
+	orFile = ""
+
+	if radOrJPG.get_active() == True:
+		orFile = "jpg"
+	if radOrPNG.get_active() == True:
+		orFile = "png"
+	if radOrBMP.get_active() == True:
+		orFile = "bmp"
+	if radOrGIF.get_active() == True:
+		orFile = "gif"
+
+	destFile = ""
+
+	if radDestJPG.get_active() == True:
+		destFile = "jpg"
+	if radDestPNG.get_active() == True:
+		destFile = "png"
+	if radDestBMP.get_active() == True:
+		destFile = "bmp"
+	if radDestGIF.get_active() == True:
+		destFile = "gif"
+
+	Process.ProcessFiles(
+		"convert $FILE$ $NAME$."+destFile, # comando a ejecutar
+		orFile, # tipo de archivos
+		True, # leer directorios?
+		False, # procesar directorio como un archivo
+		"") # mensaje final
+
+	if cbRm.get_active()==True:
+		Process.ProcessFiles(
+			"rm $FILE$", # comando a ejecutar
+			orFile, # tipo de archivos
+			True, # leer directorios?
+			False, # procesar directorio como un archivo
+			"") # mensaje final
+
+	gtk.main_quit()
+
+def ClickCancelar(widget):
+	gtk.main_quit()
+
+# PROGRAMA
+
+if Process.verifyCommands("convert%ImageMagick")==False:
+	sys.exit()
+
+w = gtk.Window(gtk.WINDOW_TOPLEVEL)
+w.set_title("Conversor de imágenes")
+w.set_border_width(20)
+
+w.connect("destroy", gtk.mainquit) 
+
+# tabla de la miniatura
+
+tableMin = gtk.Table(2, 1, False)
+tableMin.set_border_width(10)
+
+tableMin.set_row_spacings(12)
+tableMin.set_col_spacings(34)
+
+lOr = gtk.Label("Archivo Origen:")
+
+tableMin.attach(lOr, 0, 1, 0, 1)
+
+lDest = gtk.Label("Archivo Destino:")
+
+tableMin.attach(lDest, 1, 2, 0, 1)
+
+
+boxOr = gtk.VBox(True, 4)
+
+radOrJPG = gtk.RadioButton(None, "JPG")
+radOrJPG.set_active(True)
+boxOr.pack_start(radOrJPG, False, False, 0)
+
+radOrPNG= gtk.RadioButton(radOrJPG, "PNG")
+boxOr.pack_start(radOrPNG, False, False, 0)
+
+radOrBMP= gtk.RadioButton(radOrJPG, "BMP")
+boxOr.pack_start(radOrBMP, False, False, 0)
+
+radOrGIF= gtk.RadioButton(radOrJPG, "GIF")
+boxOr.pack_start(radOrGIF, False, False, 0)
+
+tableMin.attach(boxOr, 0, 1, 1, 2)
+
+boxDest = gtk.VBox(True, 4)
+
+radDestJPG = gtk.RadioButton(None, "JPG")
+boxDest.pack_start(radDestJPG, False, False, 0)
+
+radDestPNG= gtk.RadioButton(radDestJPG, "PNG")
+radDestPNG.set_active(True)
+boxDest.pack_start(radDestPNG, False, False, 0)
+
+radDestBMP= gtk.RadioButton(radDestJPG, "BMP")
+boxDest.pack_start(radDestBMP, False, False, 0)
+
+radDestGIF= gtk.RadioButton(radDestJPG, "GIF")
+boxDest.pack_start(radDestGIF, False, False, 0)
+
+tableMin.attach(boxDest, 1, 2, 1, 2)
+
+
+cbRm = gtk.CheckButton("Borrar archivos origen")
+
+tableMin.attach(cbRm, 0, 2, 2, 3)
+
+# botones
+
+aligBotones = gtk.Alignment(1.0, 0.0)
+boxBotones = gtk.HBox(True, 4)
+
+bAceptar = gtk.Button("Aceptar", gtk.STOCK_OK)
+
+bAceptar.connect("clicked", ClickAceptar)
+
+boxBotones.pack_start(bAceptar, False, False, 0)
+
+bCancelar = gtk.Button("Cancelar", gtk.STOCK_CANCEL)
+
+bCancelar.connect("clicked", ClickCancelar)
+
+boxBotones.pack_start(bCancelar, False, False, 0)
+
+aligBotones.add(boxBotones)
+
+tableMin.attach(aligBotones, 0, 2, 3, 4)
+
+w.add(tableMin)
+w.show_all()
+gtk.main()

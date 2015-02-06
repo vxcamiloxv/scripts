@@ -1,0 +1,8 @@
+#General
+.*
+
+#Python
+*.pyc
+
+#Allow
+!.gitignore

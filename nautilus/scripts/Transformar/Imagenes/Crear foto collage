@@ -1,0 +1,375 @@
+#!/usr/bin/env python
+# -*- coding: latin-1 -*-
+
+import gtk
+import os, sys
+import string
+from random import randrange
+from xml.dom import minidom
+
+sys.path.insert(0, os.path.join(os.path.abspath(os.path.dirname(sys.argv[0])),".."))
+import Process
+
+fileXML = ""
+
+colorBg = "#FFFFFF"
+colorBg1 = "#562525"
+colorBg2 = "#784949"
+
+def ClickAccept(widget):
+	global colorBg
+	global colorBg1
+	global colorBg2
+	global fileXML
+
+	# recorremos todos los directorios
+	files = os.environ['NAUTILUS_SCRIPT_SELECTED_FILE_PATHS'].split("\n")
+
+	pathDirectories = Process.getCurrentDirectory()
+
+	fileXML = pathDirectories+"/"+".comments_nautilus.xml"
+
+	columns = int(spinCol.get_value())
+	rows = int(spinRow.get_value())
+	#if nPhotos%columns!=0:
+	#	rows = rows + 1
+
+	#widthImg = int(spinWidth.get_value()) / columns
+
+
+
+	# copiar archivos
+
+	strDraw = ""
+
+	filesArray = []
+
+	for f in files:
+		if f != "":
+			if not os.path.isdir(f):
+				if Process.getExtension(f)=="JPG" or Process.getExtension(f)=="PNG":
+
+					pb = gtk.gdk.pixbuf_new_from_file( f )
+					photo_collage = Process.getName(f) + "_collage.png"
+
+					despX = int(pb.get_width())/4
+					despY = int(pb.get_height())/4
+
+					widthTotal = int(pb.get_width()) + despX
+					heightTotal = int(pb.get_height()) + despY
+
+					# dividimos la foto
+					Process.ProcessFileByArgument("mkdir out-photo-collage")
+
+					widthChunck = int(pb.get_width()) / columns
+					heightChunck = int(pb.get_height()) / rows
+
+					#border = 0#-(widthChunck/5)
+
+					for x in range(1,columns+1):
+						for y in range(1,rows+1):
+							path = Process.getPath(f) + "/out-photo-collage"
+							fileName = "out-photo-collage/img-" + str(x) + "-" + str(y) + ".jpg"
+							Process.ProcessFileByArgument("convert -crop " + str(widthChunck) + "x" + str(heightChunck) + "+" + str(int((x-1)*widthChunck)) + "+" + str(int((y-1)*heightChunck)) + " \"" + f + "\" \"" + fileName + "\"")
+
+
+							fileNameCopy = Process.getName(fileName) + "_copy.png"
+							fileCopy = path + "/" + fileNameCopy
+
+							fileNameShadow = Process.getName(fileName) + "_shadow.png"
+							fileShadow = path + "/" + fileNameShadow
+								
+							# creamos archivo png de copia
+							Process.ProcessFileByArgument(
+								"convert \"" + fileName + "\" \"" + fileCopy+ "\"")
+
+							borderPolaroid = widthChunck/40
+
+							pb = gtk.gdk.pixbuf_new_from_file( fileCopy )
+
+							Process.ProcessFileByArgument(
+								"convert -size " + str(pb.get_width()+(borderPolaroid*2)) + "x" + str(pb.get_height()+(borderPolaroid*2)) + " gradient:#f0f0ff-#f0f0ff -draw \"image Over " + str(borderPolaroid) + "," + str(borderPolaroid) + " "+str(pb.get_width())+","+str(pb.get_height())+" '" + fileCopy + "'\" \"" + fileCopy + "\"")
+
+							Process.ProcessFileByArgument(
+								"convert -background none -fill transparent -bordercolor transparent -border 10 -background none -rotate " + str(randrange(-2,2)) + " \"" + fileCopy + "\" \"" + fileCopy + "\"")
+
+							# ponemos sombra
+							if cbShadow.get_active():
+								Process.ProcessFileByArgument(
+									"convert \"" + fileCopy + "\"  -channel A  -blur 0x2  -channel RG -fx 0  -channel B -fx .25 \"" + fileShadow + "\"")
+
+
+								Process.ProcessFileByArgument(
+									"convert \"" + fileCopy + "\" -background none -gravity SouthEast -splice 4x4+0+0 \"" + fileShadow + "\" -compose Dst_Over -composite \"" + fileCopy + "\" ")
+
+							pb = gtk.gdk.pixbuf_new_from_file( fileCopy )
+
+							supH = (despX/4)+(x-1)*widthChunck + ((x-1)*(widthChunck/15))
+							supV = (despY/4)+(y-1)*heightChunck + ((y-1)*(heightChunck/15))
+
+							strDraw = strDraw + " -draw \"image Over "+ str(supH) +","+ str(supV) +" "+str(pb.get_width())+","+str(pb.get_height())+" '" + fileCopy + "'\""
+
+					# mosaico
+					bg = ""
+					if radBgTransparent.get_active() == True:
+						bg = " gradient: -channel A -fx 0 "
+
+					if radBgSolid.get_active() == True:
+						bg = " gradient:" + colorBg + "-" + colorBg
+
+					if radBgGradient.get_active() == True:
+						bg = " gradient:" + colorBg1 + "-" + colorBg2
+
+					if radBgImagen.get_active() == True:
+						fileBg = "out-photo-collage/" + Process.getName(f) + "_bg.png"
+						Process.ProcessFileByArgument(
+							"convert -negate -negate -negate -resize " + str(widthTotal) + "x" + str(heightTotal) + " " + f + " " + fileBg)
+						pb = gtk.gdk.pixbuf_new_from_file( fileBg )
+						bg = " gradient: -channel A -fx 0 -draw \"image Over 0,0 "+str(pb.get_width()) +","+str(pb.get_height())+" '" + fileBg + "'\""
+
+					if radBgImagenColorize.get_active() == True:
+						fileBg = "out-photo-collage/" + Process.getName(f) + "_bg.png"
+						Process.ProcessFileByArgument(
+							"convert -modulate 70,50 -resize " + str(widthTotal) + "x" + str(heightTotal) + " " + f + " " + fileBg)
+						pb = gtk.gdk.pixbuf_new_from_file( fileBg )
+						bg = " gradient: -channel A -fx 0 -draw \"image Over 0,0 "+str(pb.get_width()) +","+str(pb.get_height())+" '" + fileBg + "'\""
+
+					if radBgImagenEmboss.get_active() == True:
+						fileBg = "out-photo-collage/" + Process.getName(f) + "_bg.png"
+						Process.ProcessFileByArgument(
+							"convert -modulate 130,70 -resize " + str(widthTotal) + "x" + str(heightTotal) + " " + f + " " + fileBg)
+						pb = gtk.gdk.pixbuf_new_from_file( fileBg )
+						bg = " gradient:#ffffff-#ffffff -draw \"fill-opacity 0.5 image Over 0,0 "+str(pb.get_width()) +","+str(pb.get_height())+" '" + fileBg + "'\""
+
+					if radBgImagenPaint.get_active() == True:
+						fileBg = "out-photo-collage/" + Process.getName(f) + "_bg.png"
+						Process.ProcessFileByArgument(
+							"convert -modulate 130,100 -paint 4 -resize " + str(widthTotal) + "x" + str(heightTotal) + " " + f + " " + fileBg)
+						pb = gtk.gdk.pixbuf_new_from_file( fileBg )
+						bg = " gradient: -channel A -fx 0 -draw \"image Over 0,0 "+str(pb.get_width()) +","+str(pb.get_height())+" '" + fileBg + "'\""
+
+
+					# finalizar
+
+					Process.ProcessFileByArgument(
+						"convert -background none -fill transparent -size " + str(widthTotal) + "x" + str(heightTotal) + bg + strDraw + " \"" + pathDirectories + "/" + photo_collage + "\"")
+
+					# borramos temporales
+
+					Process.ProcessFileByArgument("rm -r \"out-photo-collage\"")
+
+	gtk.main_quit()
+
+def ClickCancel(widget):
+	gtk.main_quit()
+
+def readPhotoXML(f):
+	global fileXML
+	if os.path.isfile(fileXML):
+		dom = minidom.parse(fileXML)
+		for node in dom.getElementsByTagName('photo'):
+			if node.attributes["file"].value == f:
+				return [node.attributes["title"].value, node.attributes["comment"].value]
+
+	return ["",""]
+
+def ClickColor(widget, data):
+	global colorBg
+	global colorBg1
+	global colorBg2
+
+	colorseldlg = gtk.ColorSelectionDialog("Seleccionar color")
+
+	if data == "__bg__":
+		colorseldlg.colorsel.set_current_color(gtk.gdk.color_parse(colorBg))
+	
+	if data == "__bg1__":
+		colorseldlg.colorsel.set_current_color(gtk.gdk.color_parse(colorBg1))
+
+	if data == "__bg2__":
+		colorseldlg.colorsel.set_current_color(gtk.gdk.color_parse(colorBg2))
+
+	response = colorseldlg.run()
+
+	if response == gtk.RESPONSE_OK:
+		if data == "__bg__":
+			colorBg = gtk.color_selection_palette_to_string([colorseldlg.colorsel.get_current_color()]) 
+			btnColor.modify_bg(gtk.STATE_NORMAL, colorseldlg.colorsel.get_current_color())
+		if data == "__bg1__":
+			colorBg1 = gtk.color_selection_palette_to_string([colorseldlg.colorsel.get_current_color()]) 
+			btnColorBg1.modify_bg(gtk.STATE_NORMAL, colorseldlg.colorsel.get_current_color())
+		if data == "__bg2__":
+			colorBg2 = gtk.color_selection_palette_to_string([colorseldlg.colorsel.get_current_color()]) 
+			btnColorBg2.modify_bg(gtk.STATE_NORMAL, colorseldlg.colorsel.get_current_color())
+
+	colorseldlg.destroy()
+
+def ToggledBg(widget, data):
+	btnColor.set_sensitive(radBgSolid.get_active())
+	btnColorBg1.set_sensitive(radBgGradient.get_active())
+	btnColorBg2.set_sensitive(radBgGradient.get_active())
+
+# PROGRAMA
+
+if Process.verifyCommands("convert%ImageMagick")==False:
+	sys.exit()
+
+w = gtk.Window(gtk.WINDOW_TOPLEVEL)
+w.set_title("Crear foto collage")
+w.set_border_width(20)
+
+w.connect("destroy", gtk.mainquit) 
+
+# tabla de la miniatura
+
+tableMin = gtk.Table(2, 1, False)
+tableMin.set_border_width(10)
+
+tableMin.set_row_spacings(8)
+tableMin.set_col_spacings(8)
+
+aligImg = gtk.Alignment(0.0, 0.0)
+lImg = gtk.Label()
+lImg.set_markup("<b>Imagen</b>")
+aligImg.add(lImg)
+
+tableMin.attach(aligImg, 0, 2, 0, 1)
+
+lCol = gtk.Label("Columnas:")
+
+tableMin.attach(lCol, 0, 1, 1, 2)
+
+adjCol = gtk.Adjustment(1.0, 1.0, 20.0, 1.0, 5.0, 0.0)
+spinCol = gtk.SpinButton(adjCol, 0, 0)
+spinCol.set_value(5)
+
+tableMin.attach(spinCol, 1, 2, 1, 2)
+
+lRow = gtk.Label("Filas:")
+
+tableMin.attach(lRow, 0, 1, 2, 3)
+
+adjRow= gtk.Adjustment(1.0, 1.0, 20.0, 1.0, 5.0, 0.0)
+spinRow = gtk.SpinButton(adjRow, 0, 0)
+spinRow.set_value(5)
+
+tableMin.attach(spinRow, 1, 2, 2, 3)
+
+cbShadow = gtk.CheckButton("Poner sombras a las divisiones")
+
+cbShadow.set_active(True);
+
+tableMin.attach(cbShadow, 1, 2, 3, 4)
+
+
+aligBg = gtk.Alignment(0.0, 0.0)
+lBg = gtk.Label()
+lBg.set_markup("<b>Fondo</b>")
+aligBg.add(lBg)
+
+tableMin.attach(aligBg, 0, 2, 4, 5)
+
+# color fondo
+
+radBgTransparent = gtk.RadioButton(None, "Fondo transparente")
+radBgTransparent.set_active(True)
+radBgTransparent.connect("toggled", ToggledBg, "rad1")
+tableMin.attach(radBgTransparent, 1, 2, 5, 6)
+
+radBgImagen = gtk.RadioButton(radBgTransparent, "Fondo con imagen en negativo")
+radBgImagen.connect("toggled", ToggledBg, "rad4")
+tableMin.attach(radBgImagen, 1, 2, 6, 7)
+
+radBgImagenColorize = gtk.RadioButton(radBgTransparent, "Fondo con imagen oscura")
+radBgImagenColorize.connect("toggled", ToggledBg, "rad5")
+tableMin.attach(radBgImagenColorize, 1, 2, 7, 8)
+
+radBgImagenEmboss = gtk.RadioButton(radBgTransparent, "Fondo con imagen aclarada")
+radBgImagenEmboss.connect("toggled", ToggledBg, "rad6")
+tableMin.attach(radBgImagenEmboss, 1, 2, 8, 9)
+
+radBgImagenPaint = gtk.RadioButton(radBgTransparent, "Fondo con imagen pintada")
+radBgImagenPaint.connect("toggled", ToggledBg, "rad7")
+tableMin.attach(radBgImagenPaint, 1, 2, 9, 10)
+
+radBgSolid = gtk.RadioButton(radBgTransparent, "Fondo con color sólido")
+radBgSolid.connect("toggled", ToggledBg, "rad2")
+tableMin.attach(radBgSolid, 1, 2, 10, 11)
+
+aligButtonColor = gtk.Alignment(1.0, 0.0)
+
+btnColor = gtk.Button()
+
+btnColor.set_size_request(25,25)
+
+btnColor.modify_bg(gtk.STATE_NORMAL, gtk.gdk.color_parse(colorBg))
+
+btnColor.set_sensitive(False)
+
+btnColor.connect("clicked", ClickColor, "__bg__")
+
+aligButtonColor.add(btnColor)
+
+tableMin.attach(aligButtonColor, 0, 1, 10, 11)
+
+radBgGradient = gtk.RadioButton(radBgTransparent, "Fondo con color gradiente")
+radBgGradient.connect("toggled", ToggledBg, "rad3")
+tableMin.attach(radBgGradient, 1, 2, 11, 12)
+
+
+boxButtonsColorBg = gtk.HBox(True, 4)
+
+aligButtonColorBg = gtk.Alignment(1.0, 0.0)
+
+btnColorBg1 = gtk.Button()
+
+btnColorBg1.set_size_request(25,25)
+
+btnColorBg1.modify_bg(gtk.STATE_NORMAL, gtk.gdk.color_parse(colorBg1))
+
+btnColorBg1.set_sensitive(False)
+
+btnColorBg1.connect("clicked", ClickColor, "__bg1__")
+
+boxButtonsColorBg.pack_start(btnColorBg1, False, False, 0)
+
+btnColorBg2 = gtk.Button()
+
+btnColorBg2.set_size_request(25,25)
+
+btnColorBg2.modify_bg(gtk.STATE_NORMAL, gtk.gdk.color_parse(colorBg2))
+
+btnColorBg2.set_sensitive(False)
+
+btnColorBg2.connect("clicked", ClickColor, "__bg2__")
+
+boxButtonsColorBg.pack_start(btnColorBg2, False, False, 0)
+
+aligButtonColorBg.add(boxButtonsColorBg)
+
+tableMin.attach(aligButtonColorBg, 0, 1, 11, 12)
+
+
+# botones
+
+aligButtons = gtk.Alignment(1.0, 0.0)
+boxButtons = gtk.HBox(True, 4)
+
+bCancel = gtk.Button("Cancelar", gtk.STOCK_CANCEL)
+
+bCancel.connect("clicked", ClickCancel)
+
+boxButtons.pack_start(bCancel, False, False, 0)
+
+bAccept = gtk.Button("Aceptar", gtk.STOCK_OK)
+
+bAccept.connect("clicked", ClickAccept)
+
+boxButtons.pack_start(bAccept, False, False, 0)
+
+aligButtons.add(boxButtons)
+tableMin.attach(aligButtons, 1, 2, 12, 13)
+
+w.add(tableMin)
+w.show_all()
+gtk.main()

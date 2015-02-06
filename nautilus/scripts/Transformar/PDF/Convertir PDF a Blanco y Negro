@@ -1,0 +1,34 @@
+#!/usr/bin/env python
+# -*- coding: latin-1 -*-
+
+# Creado por Javier Rovegno
+
+import sys, os
+
+sys.path.insert(0,
+os.path.join(os.path.abspath(os.path.dirname(sys.argv[0])),".."))
+import Process
+
+if Process.verifyCommands("pdf2ps%gs-common")==False:
+      sys.exit()
+
+Process.ProcessFiles(
+      "pdf2ps -sDEVICE=psgray $FILE$ $NAME$_.ps", # comando a ejecutar
+      "pdf", # tipo de archivos
+      False, # leer directorios?
+      False, # procesar directorio como un archivo
+      "") # mensaje final
+
+Process.ProcessFiles(
+      "ps2pdf $NAME$_.ps", # comando a ejecutar
+      "pdf", # tipo de archivos
+      False, # leer directorios?
+      False, # procesar directorio como un archivo
+      "") # mensaje final
+
+Process.ProcessFiles(
+      "rm $NAME$_.ps", # comando a ejecutar
+      "pdf", # tipo de archivos
+      False, # leer directorios?
+      False, # procesar directorio como un archivo
+      "") # mensaje final

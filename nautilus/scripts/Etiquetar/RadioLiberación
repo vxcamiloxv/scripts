@@ -1,0 +1,2 @@
+#!/bin/bash
+gnome-terminal -e "'/home/$USER/.gnome2/nautilus-scripts/Etiquetar/.etiqueta/Etiquetar2.sh'"

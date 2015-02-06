@@ -1,0 +1,89 @@
+#!/usr/bin/env python
+# -*- coding: latin-1 -*-
+
+import gtk
+import os
+import sys
+import string
+
+sys.path.insert(0, os.path.join(os.path.abspath(os.path.dirname(sys.argv[0])),".."))
+import Process
+
+def ClickAccept(widget):
+	Process.ProcessFiles(
+		"convert $FILE$[" + str(int(adjBegin.get_value())) + "-" + str(int(adjEnd.get_value())) + "] $NAME$.jpg", # comando a ejecutar
+		"pdf", # tipo de archivos
+		False, # leer directorios?
+		False, # procesar directorio como un archivo
+		"") # mensaje final
+	gtk.main_quit()
+
+def ClickCancel(widget):
+	gtk.main_quit()
+
+# PROGRAMA
+
+if Process.verifyCommands("convert%ImageMagick")==False:
+	sys.exit()
+
+w = gtk.Window(gtk.WINDOW_TOPLEVEL)
+w.set_title("Extraer páginas JPG de un PDF")
+w.set_border_width(20)
+
+w.connect("destroy", gtk.main_quit) 
+
+# tabla
+
+tableMin = gtk.Table(2, 1, False)
+tableMin.set_border_width(10)
+
+tableMin.set_row_spacings(8)
+tableMin.set_col_spacings(8)
+
+
+lBegin = gtk.Label("Pagina inicial:")
+
+tableMin.attach(lBegin, 0, 1, 0, 1)
+
+
+adjBegin = gtk.Adjustment(1.0, 0.0, 20.0, 1.0, 5.0, 0.0)
+spinBegin = gtk.SpinButton(adjBegin, 0, 0)
+adjBegin.set_value(0)
+
+tableMin.attach(spinBegin, 1, 2, 0, 1)
+
+lEnd = gtk.Label("Pagina final:")
+
+tableMin.attach(lEnd, 0, 1, 1, 2)
+
+adjEnd = gtk.Adjustment(1.0, 0.0, 20.0, 1.0, 5.0, 0.0)
+spinEnd = gtk.SpinButton(adjEnd, 0, 0)
+adjEnd.set_value(0)
+
+tableMin.attach(spinEnd, 1, 2, 1, 2)
+
+
+# botones
+
+aligButtons = gtk.Alignment(1.0, 0.0)
+boxButtons = gtk.HBox(True, 4)
+
+bAccept = gtk.Button("Aceptar", gtk.STOCK_OK)
+
+bAccept.connect("clicked", ClickAccept)
+
+boxButtons.pack_start(bAccept, False, False, 0)
+
+bCancel = gtk.Button("Cancelar", gtk.STOCK_CANCEL)
+
+bCancel.connect("clicked", ClickCancel)
+
+boxButtons.pack_start(bCancel, False, False, 0)
+
+aligButtons.add(boxButtons)
+
+tableMin.attach(aligButtons, 1, 2, 4, 5)
+
+w.add(tableMin)
+w.show_all()
+gtk.main()

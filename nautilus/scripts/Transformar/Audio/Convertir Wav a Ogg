@@ -1,0 +1,17 @@
+#!/usr/bin/env python
+# -*- coding: latin-1 -*-
+
+import sys, os
+
+sys.path.insert(0, os.path.join(os.path.abspath(os.path.dirname(sys.argv[0])),".."))
+import Process
+
+if Process.verifyCommands("oggenc%vorbis-tools")==False:
+	sys.exit()
+
+Process.ProcessFiles(
+	"oggenc $FILE$", # comando a ejecutar
+	"wav", # tipo de archivos
+	True, # leer directorios?
+	False, # procesar directorio como un archivo
+	"") # mensaje final

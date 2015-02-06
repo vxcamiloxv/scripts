@@ -1,0 +1,25 @@
+#!/bin/bash
+# Script para conectar o desconectar LiquidSoup
+# CopyLeft bajo GPL3 - Charlie Vegan (Arder)
+
+opcion=$(zenity --list \
+  --title="Iniciar o Parar ICES" \
+  --hide-header \
+  --text="¿ Qué deseas hacer con ICES ?" \
+  --column=" " --column="Opciones"\
+  --radiolist 'FALSE' "Iniciar Normal" \
+    'FALSE' "Iniciar con reproducción Aleatoria" \
+    'FALSE' "Parar Ices"
+    )
+    if [ "$opcion" = "Iniciar Normal" ]; then 
+     echo "es conectar"
+     ices2 /etc/ices2/ices-playlist.xml >/dev/null 2>&1 & exit 0
+    elif [ "$opcion" = "Iniciar con reproducción Aleatoria" ]; then 
+     echo "es desconectar"
+     ices2 /etc/ices2/ices-playlist2.xml >/dev/null 2>&1 & exit 0
+    elif [ "$opcion" = "Parar Ices" ]; then 
+     echo "Parando ICES"
+     killall ices2 & exit 0
+    else 
+     echo "Se cerrara"
+    fi

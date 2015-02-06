@@ -1,0 +1,226 @@
+#! /usr/bin/python2
+# -*- coding: utf-8 -*-
+#
+__author__='atareao'
+__date__ ='$06/11/2011'
+#
+# control the use of the cache
+#
+# Copyright (C) 2010 Lorenzo Carbonell
+# lorenzo.carbonell.cerezo@gmail.com
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#
+#    
+import sys
+import os 
+import atexit
+from signal import SIGTERM
+import shlex
+import subprocess
+import re
+import time
+
+def ejecuta(comando):
+	args = shlex.split(comando)
+	p = subprocess.Popen(args, bufsize=10000, stdout=subprocess.PIPE)
+	valor = p.communicate()[0]
+	return valor
+
+def s2f(value):
+	try:
+		val = float(value)
+	except:
+		val = 0.0
+	return val
+	
+def libera(used, cached):
+	ejecuta('sync')
+	ejecuta('/sbin/sysctl vm.drop_caches=3')
+	total, used_new, cached_new = get_status()
+	free = used - used_new
+	free_cached = cached -cached_new
+	msg = 'Free memory\namount of RAM free %s MB\namount of CACHED free %s MB'%(free,free_cached)
+	print msg
+	#notification = pynotify.Notification ('Free cache',msg,)
+	#notification.show()	
+
+def get_status():
+	s = ejecuta('free -m')
+	s = re.sub(' +',' ',s).split('\n')[1].split(' ')
+	total = s2f(s[1])
+	used = s2f(s[2])
+	free = s2f(s[3])
+	shared = s2f(s[4])
+	buffers = s2f(s[5])
+	cached = s2f(s[6])
+	return total, used, cached
+
+def check():
+	total, used, cached = get_status()
+	if total > 0:
+		used_p = int((used)/total*100.0)
+		cached_p = int((cached)/total*100.0)
+		print 'Used %s, Cached %s'%(used_p,cached_p)
+		if (used_p + cached_p > 90 and cached_p > 15) or (used_p > 95) or (cached_p > 30):
+			libera(used,cached)
+
+class Daemon:
+	"""
+	A generic daemon class.
+   
+	Usage: subclass the Daemon class and override the run() method
+	"""
+	def __init__(self, pidfile, stdin='/dev/null', stdout='/dev/null', stderr='/dev/null'):
+		self.stdin = stdin
+		self.stdout = stdout
+		self.stderr = stderr
+		self.pidfile = pidfile
+   
+	def daemonize(self):
+		"""
+		do the UNIX double-fork magic, see Stevens' "Advanced
+		Programming in the UNIX Environment" for details (ISBN 0201563177)
+		http://www.erlenstar.demon.co.uk/unix/faq_2.html#SEC16
+		"""
+		try:
+				pid = os.fork()
+				if pid > 0:
+						# exit first parent
+						sys.exit(0)
+		except OSError, e:
+				sys.stderr.write("fork #1 failed: %d (%s)\n" % (e.errno, e.strerror))
+				sys.exit(1)
+
+		# decouple from parent environment
+		os.chdir("/")
+		os.setsid()
+		os.umask(0)
+
+		# do second fork
+		try:
+				pid = os.fork()
+				if pid > 0:
+						# exit from second parent
+						sys.exit(0)
+		except OSError, e:
+				sys.stderr.write("fork #2 failed: %d (%s)\n" % (e.errno, e.strerror))
+				sys.exit(1)
+
+		# redirect standard file descriptors
+		sys.stdout.flush()
+		sys.stderr.flush()
+		si = file(self.stdin, 'r')
+		so = file(self.stdout, 'a+')
+		se = file(self.stderr, 'a+', 0)
+		os.dup2(si.fileno(), sys.stdin.fileno())
+		os.dup2(so.fileno(), sys.stdout.fileno())
+		os.dup2(se.fileno(), sys.stderr.fileno())
+
+		# write pidfile
+		atexit.register(self.delpid)
+		pid = str(os.getpid())
+		file(self.pidfile,'w+').write("%s\n" % pid)
+   
+	def delpid(self):
+		os.remove(self.pidfile)
+
+	def start(self):
+		"""
+		Start the daemon
+		"""
+		# Check for a pidfile to see if the daemon already runs
+		try:
+				pf = file(self.pidfile,'r')
+				pid = int(pf.read().strip())
+				pf.close()
+		except IOError:
+				pid = None
+
+		if pid:
+				message = "pidfile %s already exist. Daemon already running?\n"
+				sys.stderr.write(message % self.pidfile)
+				sys.exit(1)
+	   
+		# Start the daemon
+		self.daemonize()
+		self.run()
+
+	def stop(self):
+		"""
+		Stop the daemon
+		"""
+		# Get the pid from the pidfile
+		try:
+				pf = file(self.pidfile,'r')
+				pid = int(pf.read().strip())
+				pf.close()
+		except IOError:
+				pid = None
+
+		if not pid:
+				message = "pidfile %s does not exist. Daemon not running?\n"
+				sys.stderr.write(message % self.pidfile)
+				return # not an error in a restart
+
+		# Try killing the daemon process       
+		try:
+				while 1:
+						os.kill(pid, SIGTERM)
+						time.sleep(0.1)
+		except OSError, err:
+				err = str(err)
+				if err.find("No such process") > 0:
+						if os.path.exists(self.pidfile):
+								os.remove(self.pidfile)
+				else:
+						print str(err)
+						sys.exit(1)
+
+	def restart(self):
+		"""
+		Restart the daemon
+		"""
+		self.stop()
+		self.start()
+
+	def run(self):
+		"""
+		You should override this method when you subclass Daemon. It will be called after the process has been
+		daemonized by start() or restart().
+		"""
+class FreeCache(Daemon):
+	def run(self):
+		while True:
+			time.sleep(10)
+			check()
+
+ 
+if __name__ == "__main__":
+	daemon = FreeCache('/tmp/freecache.pid')
+	if len(sys.argv) == 2:
+		if 'start' == sys.argv[1]:
+			daemon.start()
+		elif 'stop' == sys.argv[1]:
+			daemon.stop()
+		elif 'restart' == sys.argv[1]:
+			daemon.restart()
+		else:
+			print "Unknown command"
+			sys.exit(2)
+		sys.exit(0)
+        else:
+			print "usage: %s start|stop|restart" % sys.argv[0]
+			sys.exit(2)		

@@ -1,0 +1,17 @@
+#!/usr/bin/env python
+# -*- coding: latin-1 -*-
+
+import sys, os
+
+sys.path.insert(0, os.path.join(os.path.abspath(os.path.dirname(sys.argv[0])),".."))
+import Process
+
+if Process.verifyCommands("convert%ImageMagick")==False:
+	sys.exit()
+
+Process.ProcessFiles(
+	"convert -rotate 90 $FILE$ $FILE$", # comando a ejecutar
+	"jpg|png", # tipo de archivos
+	False, # leer directorios?
+	False, # procesar directorio como un archivo
+	"") # mensaje final

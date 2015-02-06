@@ -1,0 +1,303 @@
+#!/bin/bash
+#################################################
+#  Script para adicionar ruta	de archivos .ogg 	#
+#  en un archivo .txt, ideal para PlayList de		#
+#  LiquidSoup o Ices 														#
+#	 ___________________________________________	#
+#																								#
+# CopyLeft 2010 - Charlie Vegan (arder)					#
+# Bajo GPL V3 																	#
+# http://www.gnu.org/licenses/agpl-3.0.html 		#
+#																								#
+# E-Mail: xrockartex@riseup.net									#
+#																								#
+# Si mejoras este script ingresa tu nombre			#
+#																								#
+# Para: http://radioliberacion.co.cc 						#
+#################################################
+
+playlist()
+{
+archivo="$1"
+
+corto=${archivo##*/}
+
+#dividimos el directorio
+extension=${archivo##*.}
+path_nombre=${archivo%.*}
+
+
+#comprobamos si es .ogg
+if [ "$extension" == "ogg" ];	then
+    #si es un .ogg	
+				(
+				echo "5" ; sleep 1
+				
+	#opciones de a que playlist ira
+		opcion=$(zenity --list \
+  --title="Opciones Playlist RL" \
+  --hide-header \
+  --text="¿ A que playlist desea cargarlo ?" \
+  --column=" " --column="Opciones"\
+  --radiolist 'FALSE' "Mañana" \
+    'FALSE' "Tarde" \
+    'FALSE' "Noche" \
+    'FALSE' "Podcast" \
+    'FFLSE' "Jingles"
+    )
+    
+    if [ $opcion = "Mañana" ]; then 
+     echo "es la mañana"
+     				#dir="`echo $NAUTILUS_SCRIPT_SELECTED_FILE_PATHS | sed 's/%20/ /g'`"
+				echo "# CARGANDO audio | $corto"; sleep 1
+				echo "50" ; sleep 1
+				echo "# ADICIONANDO audio | $corto"; sleep 1
+				buscar="`find "$1" -iname "*.ogg" >> /home/$USER/.radioliberacion/dia.txt`"
+    elif [ $opcion = "Tarde" ]; then 
+     echo "es la tarde"
+     				#dir="`echo $NAUTILUS_SCRIPT_SELECTED_FILE_PATHS | sed 's/%20/ /g'`"
+						echo "# CARGANDO audio | $corto"; sleep 1
+						echo "50" ; sleep 1
+						echo "# ADICIONANDO audio | $corto"; sleep 1
+						buscar="`find "$1" -iname "*.ogg" >> /home/$USER/.radioliberacion/tarde.txt`"
+		elif [ $opcion = "Noche" ]; then 
+     echo "es la noche"
+     				#dir="`echo $NAUTILUS_SCRIPT_SELECTED_FILE_PATHS | sed 's/%20/ /g'`"
+						echo "# CARGANDO audio | $corto"; sleep 1
+						echo "50" ; sleep 1
+						echo "# ADICIONANDO audio | $corto"; sleep 1
+						buscar="`find "$1" -iname "*.ogg" >> /home/$USER/.radioliberacion/noche.txt`"
+		elif [ $opcion = "Podcast" ]; then 
+     echo "es el Podcast"
+     				#dir="`echo $NAUTILUS_SCRIPT_SELECTED_FILE_PATHS | sed 's/%20/ /g'`"
+						echo "# CARGANDO audio | $corto"; sleep 1
+						echo "50" ; sleep 1
+						echo "# ADICIONANDO audio | $corto"; sleep 1
+						buscar="`find "$1" -iname "*.ogg" >> /home/$USER/.radioliberacion/podcasts.txt`"
+		elif [ $opcion = "Jingles" ]; then 
+     echo "es el Jingles"
+     				#dir="`echo $NAUTILUS_SCRIPT_SELECTED_FILE_PATHS | sed 's/%20/ /g'`"
+						echo "# CARGANDO audio | $corto"; sleep 1
+						echo "50" ; sleep 1
+						echo "# ADICIONANDO audio | $corto"; sleep 1
+						buscar="`find "$1" -iname "*.ogg" >> /home/$USER/.radioliberacion/jingles.txt`"
+    else 
+     echo "Se cerrara"
+    fi
+
+				echo "100" ; sleep 1
+				 ) |
+								zenity --progress \
+								  --title="Adicionar Audios en Playlist LS" \
+								  --text="Escaneando...                                   |" \
+								  --percentage=0 \
+								  --auto-close 
+								  
+	#comprobamos si es una carpeta
+	elif [ -d "$archivo" ]; then
+		ls "$1" | grep -e ".ogg"
+		#comprobamos si la cerpeta contierne .ogg
+		if [ $? = 0 ]; then
+		(
+		echo "5" ; sleep 1
+		
+		#opciones de a que playlist ira
+		opcion=$(zenity --list \
+  --title="Opciones Playlist RL" \
+  --hide-header \
+  --text="¿ A que playlist desea cargarlo ?" \
+  --column=" " --column="Opciones"\
+  --radiolist 'FALSE' "Mañana" \
+    'FALSE' "Tarde" \
+    'FALSE' "Noche" \
+    'FALSE' "Podcast" \
+    'FFLSE' "Jingles"
+    )
+    
+    if [ $opcion = "Mañana" ]; then 
+     echo "es la mañana"
+     				#dir="`echo $NAUTILUS_SCRIPT_SELECTED_FILE_PATHS | sed 's/%20/ /g'`"
+						echo "# CARGANDO carpeta | $corto \n\n Archivos .ogg Encontrados: `find "$1" -iname "*.ogg" | wc -l`"; sleep 1
+						#barra de progreso al 50%
+						echo "50" ; sleep 1
+						echo "# ADICIONANDO carpeta | $corto \n\n Archivos .ogg Encontrados: `find "$1" -iname "*.ogg" | wc -l`"; sleep 1
+						#adicionamos a txt
+				buscar="`find "$1" -iname "*.ogg" >> /home/$USER/.radioliberacion/dia.txt`"
+				
+    elif [ $opcion = "Tarde" ]; then 
+     echo "es la tarde"
+     				#dir="`echo $NAUTILUS_SCRIPT_SELECTED_FILE_PATHS | sed 's/%20/ /g'`"
+						echo "# CARGANDO carpeta | $corto \n\n Archivos .ogg Encontrados: `find "$1" -iname "*.ogg" | wc -l`"; sleep 1
+						#barra de progreso al 50%
+						echo "50" ; sleep 1
+						echo "# ADICIONANDO carpeta | $corto \n\n Archivos .ogg Encontrados: `find "$1" -iname "*.ogg" | wc -l`"; sleep 1
+						#adicionamos a txt
+						buscar="`find "$1" -iname "*.ogg" >> /home/$USER/.radioliberacion/tarde.txt`"
+						
+		elif [ $opcion = "Noche" ]; then 
+     echo "es la noche"
+     				#dir="`echo $NAUTILUS_SCRIPT_SELECTED_FILE_PATHS | sed 's/%20/ /g'`"
+						echo "# CARGANDO carpeta | $corto \n\n Archivos .ogg Encontrados: `find "$1" -iname "*.ogg" | wc -l`"; sleep 1
+						#barra de progreso al 50%
+						echo "50" ; sleep 1
+						echo "# ADICIONANDO carpeta | $corto \n\n Archivos .ogg Encontrados: `find "$1" -iname "*.ogg" | wc -l`"; sleep 1
+						#adicionamos a txt
+						buscar="`find "$1" -iname "*.ogg" >> /home/$USER/.radioliberacion/noche.txt`"
+						
+		elif [ $opcion = "Podcast" ]; then 
+     echo "es el Podcast"
+     				#dir="`echo $NAUTILUS_SCRIPT_SELECTED_FILE_PATHS | sed 's/%20/ /g'`"
+						echo "# CARGANDO carpeta | $corto \n\n Archivos .ogg Encontrados: `find "$1" -iname "*.ogg" | wc -l`"; sleep 1
+						#barra de progreso al 50%
+						echo "50" ; sleep 1
+						echo "# ADICIONANDO carpeta | $corto \n\n Archivos .ogg Encontrados: `find "$1" -iname "*.ogg" | wc -l`"; sleep 1
+						#adicionamos a txt
+						buscar="`find "$1" -iname "*.ogg" >> /home/$USER/.radioliberacion/podcasts.txt`"
+						
+		elif [ $opcion = "Jingles" ]; then 
+     echo "es el Jingles"
+     				#dir="`echo $NAUTILUS_SCRIPT_SELECTED_FILE_PATHS | sed 's/%20/ /g'`"
+						echo "# CARGANDO carpeta | $corto \n\n Archivos .ogg Encontrados: `find "$1" -iname "*.ogg" | wc -l`"; sleep 1
+						#barra de progreso al 50%
+						echo "50" ; sleep 1
+						echo "# ADICIONANDO carpeta | $corto \n\n Archivos .ogg Encontrados: `find "$1" -iname "*.ogg" | wc -l`"; sleep 1
+						#adicionamos a txt
+						buscar="`find "$1" -iname "*.ogg" >> /home/$USER/.radioliberacion/jingles.txt`"
+    else 
+     echo "Se cerrara"
+    fi
+
+		echo "100" ; sleep 1
+		 ) |		
+		 			#opciones de ventana de progreso
+				    zenity --progress \
+				      --title="Adicionar Audios en Playlist LS" \
+				      --text="Escaneando...                                   |" \
+				      --percentage=0 \
+				      --auto-close 
+		elif [ $? = 1 ]; then
+		#comprueba si tiene un sub-directorio
+		  if [ -d "$archivo" ]; then
+		  subdirectorio=($(find "$1" -name "*.ogg"));oggsubdirectorio=${#subdirectorio[*]}  
+		  #comprueba si tiene un archivos diferentes a .ogg o contiene algun .ogg
+		  	
+		  	if [ $oggsubdirectorio = 0 ]; then
+		      echo "Error | La carpeta no contiene archivos .ogg"
+					zenity --error \
+		  		--text="Error | La carpeta no contiene archivos .ogg"
+		  	
+		  else 
+		   #si es un .ogg	o contiene algin .ogg
+				(
+				echo "5" ; sleep 1
+				
+						#opciones de a que playlist ira
+		opcion=$(zenity --list \
+  --title="Opciones Playlist RL" \
+  --hide-header \
+  --text="¿ A que playlist desea cargarlo ?" \
+  --column=" " --column="Opciones"\
+  --radiolist 'FALSE' "Mañana" \
+    'FALSE' "Tarde" \
+    'FALSE' "Noche" \
+    'FALSE' "Podcast" \
+    'FFLSE' "Jingles"
+    )
+    
+    if [ $opcion = "Mañana" ]; then 
+     echo "es la mañana"
+     				#dir="`echo $NAUTILUS_SCRIPT_SELECTED_FILE_PATHS | sed 's/%20/ /g'`"
+						echo "# CARGANDO carpeta | $corto \n\n Archivos .ogg Encontrados: `find "$1" -iname "*.ogg" | wc -l`"; sleep 1
+						#barra de progreso al 50%
+						echo "50" ; sleep 1
+						echo "# ADICIONANDO carpeta | $corto \n\n Archivos .ogg Encontrados: `find "$1" -iname "*.ogg" | wc -l`"; sleep 1
+						#adicionamos a txt
+				buscar="`find "$1" -iname "*.ogg" >> /home/$USER/.radioliberacion/dia.txt`"
+				
+    elif [ $opcion = "Tarde" ]; then 
+     echo "es la tarde"
+     				#dir="`echo $NAUTILUS_SCRIPT_SELECTED_FILE_PATHS | sed 's/%20/ /g'`"
+						echo "# CARGANDO carpeta | $corto \n\n Archivos .ogg Encontrados: `find "$1" -iname "*.ogg" | wc -l`"; sleep 1
+						#barra de progreso al 50%
+						echo "50" ; sleep 1
+						echo "# ADICIONANDO carpeta | $corto \n\n Archivos .ogg Encontrados: `find "$1" -iname "*.ogg" | wc -l`"; sleep 1
+						#adicionamos a txt
+						buscar="`find "$1" -iname "*.ogg" >> /home/$USER/.radioliberacion/tarde.txt`"
+						
+		elif [ $opcion = "Noche" ]; then 
+     echo "es la noche"
+     				#dir="`echo $NAUTILUS_SCRIPT_SELECTED_FILE_PATHS | sed 's/%20/ /g'`"
+						echo "# CARGANDO carpeta | $corto \n\n Archivos .ogg Encontrados: `find "$1" -iname "*.ogg" | wc -l`"; sleep 1
+						#barra de progreso al 50%
+						echo "50" ; sleep 1
+						echo "# ADICIONANDO carpeta | $corto \n\n Archivos .ogg Encontrados: `find "$1" -iname "*.ogg" | wc -l`"; sleep 1
+						#adicionamos a txt
+						buscar="`find "$1" -iname "*.ogg" >> /home/$USER/.radioliberacion/noche.txt`"
+						
+		elif [ $opcion = "Podcast" ]; then 
+     echo "es el Podcast"
+     				#dir="`echo $NAUTILUS_SCRIPT_SELECTED_FILE_PATHS | sed 's/%20/ /g'`"
+						echo "# CARGANDO carpeta | $corto \n\n Archivos .ogg Encontrados: `find "$1" -iname "*.ogg" | wc -l`"; sleep 1
+						#barra de progreso al 50%
+						echo "50" ; sleep 1
+						echo "# ADICIONANDO carpeta | $corto \n\n Archivos .ogg Encontrados: `find "$1" -iname "*.ogg" | wc -l`"; sleep 1
+						#adicionamos a txt
+						buscar="`find "$1" -iname "*.ogg" >> /home/$USER/.radioliberacion/podcasts.txt`"
+						
+		elif [ $opcion = "Jingles" ]; then 
+     echo "es el Jingles"
+     				#dir="`echo $NAUTILUS_SCRIPT_SELECTED_FILE_PATHS | sed 's/%20/ /g'`"
+						echo "# CARGANDO carpeta | $corto \n\n Archivos .ogg Encontrados: `find "$1" -iname "*.ogg" | wc -l`"; sleep 1
+						#barra de progreso al 50%
+						echo "50" ; sleep 1
+						echo "# ADICIONANDO carpeta | $corto \n\n Archivos .ogg Encontrados: `find "$1" -iname "*.ogg" | wc -l`"; sleep 1
+						#adicionamos a txt
+						buscar="`find "$1" -iname "*.ogg" >> /home/$USER/.radioliberacion/jingles.txt`"
+    else 
+     echo "Se cerrara"
+    fi
+
+				
+				echo "100" ; sleep 1
+				 ) |
+								zenity --progress \
+								  --title="Adicionar Audios en Playlist LS" \
+								  --text="Escaneando...                                   |" \
+								  --percentage=0 \
+								  --auto-close 
+		  fi;
+		fi;
+	  else
+			echo "Error | La carpeta no contiene archivos .ogg"
+			zenity --error \
+		  --text="Error | La carpeta no contiene archivos .ogg"
+		fi;
+
+
+else
+		echo "Error | El formato de archivo no es .ogg"
+		zenity --error \
+    --text="Error | El formato de archivo no es .ogg"
+    
+fi
+}      
+
+# Redefinir variable IFS para poder usar ficheros con espacios
+tmpIFS=$IFS
+IFS=$'\n'
+
+if [ -z $NAUTILUS_SCRIPT_SELECTED_FILE_PATHS ]; then
+    NAUTILUS_SCRIPT_SELECTED_FILE_PATHS=$1
+    zenity --error \
+    --text="Error al leer archivo o carpeta"
+fi
+
+# Para cada uno de los ficheros seleccionados
+for ARCHIVE_FULLPATH in $NAUTILUS_SCRIPT_SELECTED_FILE_PATHS; do
+
+    # Y aqui ya hacemos la llamada para playlist
+    playlist "$ARCHIVE_FULLPATH"
+
+done
+
+IFS=$tmpIFS;

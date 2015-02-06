@@ -1,0 +1,34 @@
+#!/bin/bash
+# Script para ver los Playlist de Radio Liberación
+# CepyLeft bajo GPL3 - Charlie Vegan (Arder)
+
+opcion=$(zenity --list \
+  --title="Ver PlayList de Radio Liberación" \
+  --hide-header \
+  --text="¿ Qué Playlist deseas ver ?" \
+  --column=" " --column="Opciones" --column="Descripción"\
+  --radiolist 'FALSE' "Mañana" "Ver Playlist Mañana" \
+    'FALSE' "Tarde" "Ver Playlist Tarde" \
+    'FALSE' "Noche" "Ver Playlist Noche" \
+    'FALSE' "Podcast" "Ver Playlist Podcast" \
+    'FALSE' "Jingles" "Ver Playlist Jingles"
+    )
+    
+    if [ $opcion = "Mañana" ]; then 
+     echo "playlist mañana"
+     gedit "/home/$USER/.radioliberacion/dia.txt"
+    elif [ $opcion = "Tarde" ]; then 
+     echo "playlist tarde"
+     gedit "/home/$USER/.radioliberacion/tarde.txt"
+    elif [ $opcion = "Noche" ]; then 
+     echo "playlist noche"
+     gedit "/home/$USER/.radioliberacion/noche.txt"
+    elif [ $opcion = "Podcast" ]; then 
+     echo "playlist podcast"
+     gedit "/home/$USER/.radioliberacion/podcasts.txt"
+    elif [ $opcion = "Jingles" ]; then 
+     echo "playlist jingles"
+     gedit "/home/$USER/.radioliberacion/jingles.txt"
+    else 
+     echo "Se cerrara"
+    fi

@@ -1,0 +1,17 @@
+#!/usr/bin/env python
+# -*- coding: latin-1 -*-
+
+# Creado por Javier Rovegno
+
+import sys, os
+
+sys.path.insert(0, os.path.join(os.path.abspath(os.path.dirname(sys.argv[0])),".."))
+import Process
+
+if Process.verifyCommands("pdftk%pdftk")==False:
+	sys.exit()
+
+Process.ProcessTogetherFiles(
+	"pdftk $FILES$ cat output out.pdf", # comando a ejecutar
+	"pdf", # tipo de archivos
+	"") # mensaje final 

@@ -1,0 +1,19 @@
+#!/usr/bin/env python
+# -*- coding: latin-1 -*-
+
+# Creado por Javier Rovegno
+
+import sys, os
+
+sys.path.insert(0, os.path.join(os.path.abspath(os.path.dirname(sys.argv[0])),".."))
+import Process
+
+if Process.verifyCommands("pdftk%pdftk")==False:
+       sys.exit()
+
+Process.ProcessFiles(
+       "pdftk $FILE$ output $NAME$_.$EXT$ compress", # comando a ejecutar
+       "pdf", # tipo de archivos
+       False, # leer directorios?
+       False, # procesar directorio como un archivo
+       "Proceso creado satisfactoriamente") # mensaje final

@@ -1,0 +1,4 @@
+#!/bin/bash
+gedit "/home/$USER/.radioliberacion/playlist2.txt"
+
+
