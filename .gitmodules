@@ -1,0 +1,3 @@
+[submodule "ProxyMan"]
+	path = ProxyMan
+	url = https://github.com/himanshub16/ProxyMan.git

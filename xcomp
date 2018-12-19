@@ -1,0 +1,56 @@
+#!/bin/bash
+#
+# Start a composition manager.
+# (xcompmgr or compton)
+
+comphelp() {
+    echo "Composition Manager:"
+    echo "   (re)start: COMP"
+    echo "   toggle:    COMP -t"
+    echo "   stop:      COMP -s"
+    echo "   query:     COMP -q"
+    echo "              returns if composition manager is running"
+    exit
+}
+
+checkcomp() {
+    pgrep xcompmgr &>/dev/null
+}
+
+statuscomp() {
+    if checkcomp; then
+        echo "runing"
+    else
+        echo "stoped"
+    fi
+    exit 0
+}
+
+stopcomp() {
+    checkcomp && killall xcompmgr
+}
+
+startcomp() {
+    stopcomp
+    # xcompmgr -CcfF -I-.015 -O-.03 -D6 -t-1 -l-3 -r4.2 -o.5 &
+    xcompmgr &
+    exit 0
+}
+togglecomp() {
+    if checkcomp; then
+        echo "Turning xcompmgr OFF"
+        stopcomp
+    else
+        echo "Turning xcompmgr ON"
+        startcomp
+    fi
+    exit 0
+}
+
+case "$1" in
+    "")   startcomp ;;
+    "-q") statuscomp ;;
+    "-s") stopcomp; exit ;;
+    "-t") togglecomp ;;
+    *)    comphelp ;;
+esac

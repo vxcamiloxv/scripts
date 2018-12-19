@@ -1,0 +1,2 @@
+#!/bin/sh
+exec em -c -n -a "" -F "((name . \"emacs-capture\") (height . 10) (width . 80))" "$@"

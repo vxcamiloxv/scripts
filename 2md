@@ -1,0 +1,15 @@
+#!/bin/bash
+
+# Usage: html2md /path/to/file
+
+# Set $IFS so that filenames with spaces don't break the loop
+SAVEIFS=$IFS
+IFS=$(echo -en "\n\b")
+
+# Loop through path provided as argument
+for x in $(find $@ -name '*.html')
+do
+  pandoc -f html -t markdown -o $x.md $x
+done
+# Restore original $IFS
+IFS=$SAVEIFS

@@ -1,0 +1,2 @@
+#!/bin/sh
+screen -ls | grep autoscreen && urxvt -name screen -e screen -A -x autoscreen || urxvt -name screen -e screen -A -R -S autoscreen
