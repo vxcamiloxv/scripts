@@ -2,40 +2,37 @@
 
 import re
 import os
-import gnomekeyring as gkey
 import subprocess
 
 
 def set_credentials(repo, user, pw):
     KEYRING_NAME = "offlineimap"
     attrs = {"repo": repo, "user": user}
-    keyring = gkey.get_default_keyring_sync()
-    gkey.item_create_sync(keyring, gkey.ITEM_NETWORK_PASSWORD,
-                          KEYRING_NAME, attrs, pw, True)
+    # keyring = gkey.get_default_keyring_sync()
+    # gkey.item_create_sync(keyring, gkey.ITEM_NETWORK_PASSWORD,
+    #                      KEYRING_NAME, attrs, pw, True)
 
 
-def get_credentials(repo):
-    keyring = gkey.get_default_keyring_sync()
-    attrs = {"repo": repo}
-    items = gkey.find_items_sync(gkey.ITEM_NETWORK_PASSWORD, attrs)
-    return (items[0].attributes["user"], items[0].secret)
+def get_credentials(account, port):
+    s = "machine %s ([^ ]*) (.*) port %s password ([^ ]*)\n" \
+        % (account, port)
+    p = re.compile(s)
+    authinfo = os.popen("gpg -q --no-tty -d ~/.authinfo.gpg").read()
+    return p.search(authinfo).group(1)
 
 
-def get_username(repo):
-    return get_credentials(repo)[0]
+def get_username(account, port):
+    return get_credentials(account, port)
 
-
-def get_password(repo):
-    return get_credentials(repo)[1]
-
-
-def get_password_emacs(machine, login, port):
+def get_password(machine, login, port):
     s = "machine %s login %s port %s password ([^ ]*)\n" \
         % (machine, login, port)
     p = re.compile(s)
     authinfo = os.popen("gpg -q --no-tty -d ~/.authinfo.gpg").read()
     return p.search(authinfo).group(1)
 
+def get_password_emacs(machine, account, port):
+    return get_password(machine, account, port)
 
 if __name__ == "__main__":
     import sys
