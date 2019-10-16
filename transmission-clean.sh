@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # 
 # Script to clean completed torrent after seed ratio limit
 #
@@ -40,17 +40,18 @@ do
     RATIO_LIMIT=`transmission-remote $SERVER --session-info | grep 'Default seed ratio limit:' | sed -e 's/[A-Z|a-z]\:*//g' | bc -l`
     RATIO=`transmission-remote $SERVER --torrent $TORRENTID --info | grep 'Ratio:' | sed -e 's/[A-Z|a-z]\:*//g' | bc -l`
     LOCATION=`transmission-remote $SERVER --torrent $TORRENTID --info | grep 'Location:' | sed -e 's/Location\: //g'`
+    NAME=`transmission-remote $SERVER --torrent $TORRENTID --info | grep 'Name:' | sed -e 's/  Name\: //g'`
     echo $DONE
     echo Ratio: "${RATIO%.*}"
 
     # if the torrent is complete and has ratio limit
     if [ "$DONE" ] && [ "${RATIO%.*}" -ge "${RATIO_LIMIT%.*}" ]; then
         # remove the torrent from Transmission
-        if [ $LOCATION =~ $REMOVE_PATH ]; then
-            echo "Torrent #$TORRENTID is completed, Removing torrent and data from list"
+        if [[ "$LOCATION" =~ "$REMOVE_PATH" ]]; then
+            echo "Torrent #$TORRENTID ($NAME) is completed, Removing torrent and data from list"
             transmission-remote $SERVER --torrent $TORRENTID --remove-and-delete
         else 
-            echo "Torrent #$TORRENTID is completed, Removing torrent from list"
+            echo "Torrent #$TORRENTID ($NAME) is completed, Removing torrent from list"
             transmission-remote $SERVER --torrent $TORRENTID --remove
         fi
     else
