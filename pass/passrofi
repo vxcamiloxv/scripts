@@ -1,0 +1,252 @@
+#!/usr/bin/env bash
+#
+# Copyright (C) 2019 Distopico <distopico@riseup.net>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+# Description:
+# --------------
+# Simple password-store aka 'pass' UI with rofi
+#
+# Usage:
+# ---------------
+# * rofi mode: rofi -modi "pass:passrofi" -show
+# * rofi dmenu: /path/to/script/passrofi
+#
+shopt -s nullglob globstar
+
+# Options
+COPY_PASS="copy pass"
+COPY_OTP="copy otp"
+COPY_FIELD="copy field"
+SHOW_FIELD="show field"
+COPY_ACTION="copy"
+SHOW_ACTION="copy"
+QUIT_NAME="quit ›"
+RETURN_NAME="‹ return"
+OPTIONS=( "$COPY_PASS|*" "$COPY_OTP|•" "$COPY_FIELD|»" "$SHOW_FIELD|›" )
+ACTIONS=( "$COPY_ACTION|‣" "$SHOW_ACTION|▹" )
+
+# Setup
+BASE_PATH=$(dirname "$0")
+CLIP_TIME=${PASSWORD_STORE_CLIP_TIME:-45}
+PASS_CMD=${PASSWORD_STORE_CMD:-"$BASE_PATH/passp"}
+PASS_ROOT_DIR=${PASSWORD_STORE_DIR-~/.password-store}
+NOTIFY_CMD="notify-send"
+PROMPT="pass"
+
+# Check commands
+has_notify=0
+rofi_mode=0
+if [[ -x "$(command -v $NOTIFY_CMD)" ]]; then
+    has_notify=1
+fi
+if ! [[ -x "$(command -v pgrep)" ]]; then
+    # Set pgrep fallback
+    function pgrep() {
+        ps axf | grep $1 | grep -v grep | awk '{print $1}'
+    }
+fi
+if ! [[ -z "$(pgrep "rofi")" ]]; then
+    rofi_mode=1
+fi
+
+
+rofi_dmenu () {
+    rofi -dmenu -p $PROMPT "$@"
+}
+
+# main menu
+main_menu () {
+    for opt in "${OPTIONS[@]}"
+    do
+        IFS='|' read -ra val <<< "$opt"
+        printf "%s\n" "${val[0]}"
+    done
+}
+
+# # Get values action/options from array
+# get_from_array () {
+
+# }
+
+# Get identifier type
+get_option_type () {
+    local options=("${OPTIONS[@]}", "${ACTIONS[@]}")
+    value=""
+
+    for opt in "${options[@]}"
+    do
+        IFS='|' read -ra val <<< "$opt"
+        if [[ "$1" == "${val[0]}" ]] || [[ "$1" == "${val[1]}" ]]; then
+            if [[ "$2" == "identifie" ]]; then
+                value=${val[1]}
+            else
+                value=${val[0]}
+            fi
+            break
+        fi
+    done
+    echo "$value"
+}
+
+# Get passwords list
+get_pass_list () {
+    password_files=( "$PASS_ROOT_DIR"/**/*.gpg )
+    password_files=( "${password_files[@]#"$PASS_ROOT_DIR"/}" )
+    password_files=( "${password_files[@]%.gpg}" )
+    identifier=$(get_option_type "$@" "identifie")
+
+    printf "$RETURN_NAME\n"
+    printf "$identifier| %s\n" "${password_files[@]}"
+}
+
+# Call copy command
+copy_pass () {
+    IFS='|' read -ra val <<< "$@"
+    action=$(get_option_type "${val[0]}")
+    password="$(echo -e "${val[1]}" | sed -e 's/^[[:space:]]*//')"
+    should_notify=0
+    response=1
+
+    [[ -n $password ]] || exit
+
+    case "${action}" in
+        "$COPY_PASS")
+            $PASS_CMD show -c "$password" >/dev/null 2>&1
+            should_notify=1
+            response=$?
+            ;;
+        "$COPY_OTP")
+            $PASS_CMD otp -c "$password" >/dev/null 2>&1
+            should_notify=1
+            response=$?
+            ;;
+        "$COPY_FIELD")
+            pass_field=$($PASS_CMD show "$password")
+            response=$?
+            pass_key_value=$(printf '%s\n' "${pass_field}" | tail -n+2)
+            return_opt="$RETURN_NAME"
+            empty_msg="not have values"
+
+            # Check if password not have additional fields
+            if [[ -z "$pass_key_value" ]]; then
+                if [[ $rofi_mode -eq 1 ]]; then
+                    echo -en "\0message\x1f<b>$password</b>: $empty_msg\n"
+                    printf "%s\n" "$return_opt"
+                else
+                    printf "%s\n" "$password: $empty_msg | $RETURN_NAME"
+                fi
+                exit 0
+            fi
+
+            # Return opts
+            printf "%s\n" "$return_opt"
+
+            # Show pass fields
+            line=0
+            while read -r LINE; do
+                ((line++))
+			    line_key="${LINE%%: *}"
+			    line_val="${LINE#* }"
+                content="$line_key: $line_val"
+
+                if [[ $line_key = $line_val ]]; then
+                    content="$line_val"
+                fi
+			    printf "‣| $line) %s [$password]\n" "$content"
+		    done < <(printf "%s\n" "${pass_key_value}")
+            ;;
+        "$COPY_ACTION")
+            data=$(echo "$password" | sed 's/\([[:digit:]]\+\))[[:space:]]\+\(.*\)[[:space:]]\+\[\([^]]*\)\]/\1,\2,\3/')
+            IFS=',' read -ra field_data <<< "$data"
+            IFS=':' read -ra field <<< "${field_data[1]}"
+            line=$(("${field_data[0]}" + 1))
+            password="${field_data[2]}"
+            field_len=${#field[@]}
+
+            # Field name or line to show on notification
+            field=" (<b>${field[0]}</b>)"
+            if [[ $field_len -lt 2 ]]; then
+                field=" (<b>line: $line</b>)"
+            fi
+
+            # Copy line
+            $PASS_CMD show --clip="$line" "$password" >/dev/null 2>&1
+            should_notify=1
+            response=$?
+            ;;
+        *)
+            response=1
+            ;;
+    esac
+
+    if [[ $response -eq 1 ]]; then
+        if [[ $rofi_mode -eq 1 ]]; then
+            echo -en "\0message\x1f<b>$action</b>: error copying\n"
+            printf "$QUIT_NAME\n"
+        else
+            printf "$action: error copying | $QUIT_NAME\n"
+        fi
+    elif [[ $has_notify -eq 1 ]] && [[ $should_notify -eq 1 ]]; then
+		$NOTIFY_CMD "pass" "Copied <b>$password</b>$field to clipboard. Will clear in $CLIP_TIME seconds." >/dev/null 2>&1
+	fi
+}
+
+call_action () {
+    if [[ $rofi_mode -eq 1 ]]; then
+        if ! [[ -z $(get_option_type "$@") ]]; then
+            get_pass_list "$@"
+        else
+            copy_pass "$@"
+        fi
+    else
+        call_dmenu "$@"
+    fi
+}
+
+call_dmenu () {
+    action=$(main_menu | rofi_dmenu "$@")
+    [[ -n $action ]] || exit
+
+    password=$(get_pass_list "$action" | rofi_dmenu "$@")
+    [[ -n $password ]] || exit
+
+    result=$(copy_pass "$password")
+    if [[ "$result" ]]; then
+        echo "$result" | rofi_dmenu "$@"
+    fi
+}
+
+call_main () {
+    # Show as rofi mode or dmenu
+    if [[ $rofi_mode -eq 1 ]]; then
+        echo -en "\0message\x1f\n" # reset message
+        echo -en "\x00prompt\x1f$PROMPT\n"
+        main_menu
+    else
+        call_dmenu
+    fi
+}
+
+# Inputs
+if [[ x"$@" = x"$QUIT_NAME" ]]; then
+    exit 0
+elif [[ x"$@" = x"$RETURN_NAME" ]]; then
+    call_main
+elif [[ "$@" ]]; then
+    call_action "$@"
+else
+    call_main
+fi

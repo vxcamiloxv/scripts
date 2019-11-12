@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+#
+# Description:
+# --------------
+# Simple wrapper of password-store aka 'pass'
+# that prevent save copy history in some clipboard managers.
+#
+# supported:
+# - clipmenu
+# - greenclip
+#
+# Requirements:
+# --------------
+# - pass
+# - xsel
+#
+# Usage:
+# ---------------
+# Just add an alias e.g:
+#
+# alias pass="/path/to/script/passp"
+#
+
+PASS_CMD="/usr/bin/pass"
+GREENCLIP_CMD='greenclip daemon'
+CLIPMENU_CMD='clipmenud'
+
+function _pgrep() {
+    if ! [[ -x "$(command -v pgrep)" ]]; then
+        # Set pgrep fallback
+        ps axf | grep "$1" | grep -v grep | awk '{print $1}'
+    else
+        pgrep -f "$1"
+    fi
+}
+
+# If has greenclip process active
+processId="$(_pgrep "$GREENCLIP_CMD")"
+if ! [[ -z $processId ]]; then
+    kill -20 $processId
+    $PASS_CMD "$@"
+    exit_code=$?
+    greenclip print ' '
+    kill -18 $processId
+    exit exit_code
+fi
+
+# if has clipmenud process active
+processId="$(_pgrep "$CLIPMENU_CMD")"
+if ! [[ -z $processId ]]; then
+    $PASS_CMD "$@"
+    exit_code=$?
+    clipdel -d "$(xsel -b)"
+    exit exit_code
+fi
+
+
+# Default pass if not clipboard is ruining
+$PASS_CMD "$@"
