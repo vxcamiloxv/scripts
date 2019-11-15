@@ -20,7 +20,6 @@
 #
 # alias pass="/path/to/script/passp"
 #
-
 PASS_CMD="/usr/bin/pass"
 GREENCLIP_CMD='greenclip daemon'
 CLIPMENU_CMD='clipmenud'
@@ -42,7 +41,7 @@ if ! [[ -z $processId ]]; then
     exit_code=$?
     greenclip print ' '
     kill -18 $processId
-    exit exit_code
+    exit $exit_code
 fi
 
 # if has clipmenud process active
@@ -50,10 +49,9 @@ processId="$(_pgrep "$CLIPMENU_CMD")"
 if ! [[ -z $processId ]]; then
     $PASS_CMD "$@"
     exit_code=$?
-    clipdel -d "$(xsel -b)"
-    exit exit_code
+    clipdel -d "$(printf '%q' $(xsel -b))"
+    exit $exit_code
 fi
-
 
 # Default pass if not clipboard is ruining
 $PASS_CMD "$@"
