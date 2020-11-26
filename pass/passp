@@ -1,5 +1,21 @@
 #!/usr/bin/env bash
 #
+# password-store wrapper to disable clipboard managers
+# Copyright (C) 2020 Distopico <distopico@riseup.net>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
 # Description:
 # --------------
 # Simple wrapper of password-store aka 'pass'
@@ -21,8 +37,9 @@
 # alias pass="/path/to/script/passp"
 #
 PASS_CMD="/usr/bin/pass"
-GREENCLIP_CMD='greenclip daemon'
-CLIPMENU_CMD='clipmenud'
+CLIPMENU_CTL_CMD='clipctl'
+CLIPMENU_DAEMON_CMD='clipmenud'
+GREENCLIP_DAEMON_CMD='greenclip daemon'
 
 function _pgrep() {
     if ! [[ -x "$(command -v pgrep)" ]]; then
@@ -34,22 +51,25 @@ function _pgrep() {
 }
 
 # If has greenclip process active
-processId="$(_pgrep "$GREENCLIP_CMD")"
+processId="$(_pgrep "$GREENCLIP_DAEMON_CMD")"
 if ! [[ -z $processId ]]; then
     kill -20 $processId
     $PASS_CMD "$@"
     exit_code=$?
+
     greenclip print ' '
     kill -18 $processId
     exit $exit_code
 fi
 
 # if has clipmenud process active
-processId="$(_pgrep "$CLIPMENU_CMD")"
+processId="$(_pgrep "$CLIPMENU_DAEMON_CMD")"
 if ! [[ -z $processId ]]; then
+    $CLIPMENU_CTL_CMD disable
     $PASS_CMD "$@"
     exit_code=$?
-    clipdel -d "$(printf '%q' $(xsel -b))"
+
+    $CLIPMENU_CTL_CMD enable
     exit $exit_code
 fi
 
