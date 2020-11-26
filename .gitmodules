@@ -1,3 +1,6 @@
 [submodule "proxyman"]
 	path = proxyman
 	url = https://github.com/himanshub16/ProxyMan.git
+[submodule "pass-utils"]
+	path = pass-utils
+	url = https://framagit.org/distopico/pass-utils.git
