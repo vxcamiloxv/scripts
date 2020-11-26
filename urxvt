@@ -1,4 +1,0 @@
-#!/bin/sh
-ps aux | grep 'urxvtd *-q' || DISPLAY=':0' urxvtd -q -o
-
-exec urxvtc $@
